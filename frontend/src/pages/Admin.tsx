@@ -59,6 +59,7 @@ function StaffTab({ departments, canEdit }: { departments: Department[]; canEdit
         <button className="btn">Create User</button>
       </form>
       )}
+      <div className="table-scroll">
       <table>
         <thead><tr><th>Employee ID</th><th>Name</th><th>Designation</th><th>Role</th><th>Department</th><th>Status</th><th></th></tr></thead>
         <tbody>
@@ -72,6 +73,7 @@ function StaffTab({ departments, canEdit }: { departments: Department[]; canEdit
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -141,10 +143,12 @@ function RolesTab() {
   return (
     <div>
       <h3>Roles / Hierarchy</h3>
+      <div className="table-scroll">
       <table>
         <thead><tr><th>Role</th><th>Description</th></tr></thead>
         <tbody>{rows.map((r) => <tr key={r.role}><td>{r.role}</td><td>{r.desc}</td></tr>)}</tbody>
       </table>
+      </div>
     </div>
   );
 }

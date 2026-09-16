@@ -76,20 +76,24 @@ export default function Dashboard() {
       {my && my.dueToday.length > 0 && (
         <>
           <h3>Due Today</h3>
+          <div className="table-scroll">
           <table>
             <thead><tr><th>Task</th><th>Department</th><th>Due</th><th>Status</th></tr></thead>
             <tbody>{my.dueToday.map((t) => <TaskRow key={t.id} task={t} />)}</tbody>
           </table>
+          </div>
         </>
       )}
 
       {my && my.dueThisWeek.length > 0 && (
         <>
           <h3>Due This Week</h3>
+          <div className="table-scroll">
           <table>
             <thead><tr><th>Task</th><th>Department</th><th>Due</th><th>Status</th></tr></thead>
             <tbody>{my.dueThisWeek.map((t) => <TaskRow key={t.id} task={t} />)}</tbody>
           </table>
+          </div>
         </>
       )}
 
@@ -134,7 +138,7 @@ export default function Dashboard() {
                 <div className="kpi-card"><div className="value">{mgmt.tasks.overdue}</div><div className="label">Overdue tasks</div></div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(260px, 1fr)', gap: 16, marginTop: 8 }}>
+              <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(260px, 1fr)', gap: 16, marginTop: 8 }}>
                 <div className="card">
                   <strong>Task Status Breakdown</strong>
                   <div style={{ marginTop: 10 }}>
@@ -168,6 +172,7 @@ export default function Dashboard() {
               </div>
 
               <h3 style={{ marginTop: 20 }}>Staff With Pending Work</h3>
+              <div className="table-scroll">
               <table>
                 <thead><tr><th>Name</th><th>Pending tasks</th></tr></thead>
                 <tbody>
@@ -176,6 +181,7 @@ export default function Dashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </>
           )}
         </>

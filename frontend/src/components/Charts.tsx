@@ -15,7 +15,21 @@ export function BarChart({ data }: { data: { label: string; value: number; color
           onMouseEnter={() => setHover(i)}
           onMouseLeave={() => setHover(null)}
         >
-          <div style={{ width: 120, fontSize: 13, color: '#555', flexShrink: 0 }}>{d.label}</div>
+          <div
+            style={{
+              width: '30%',
+              minWidth: 70,
+              maxWidth: 120,
+              fontSize: 13,
+              color: '#555',
+              flexShrink: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {d.label}
+          </div>
           <div style={{ flex: 1, background: '#eef0f4', borderRadius: 4, height: 16, overflow: 'hidden' }}>
             <div
               style={{
@@ -63,7 +77,7 @@ export function DonutChart({ data, size = 140 }: { data: { label: string; value:
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ maxWidth: '100%', height: 'auto' }}>
         <g transform={`rotate(-90 ${r} ${r})`}>
           {total === 0 && <circle cx={r} cy={r} r={radius} fill="none" stroke="#eef0f4" strokeWidth={stroke} />}
           {data.map((d, i) => {

@@ -155,6 +155,7 @@ export default function CampaignDetail() {
             </div>
             <div className="progress-bar"><div style={{ width: `${d.completionPercent}%` }} /></div>
             {d.tasks.length > 0 && (
+              <div className="table-scroll">
               <table style={{ marginTop: 10 }}>
                 <thead><tr><th>Task</th><th>Assigned To</th><th>Due</th><th>Status</th></tr></thead>
                 <tbody>
@@ -168,6 +169,7 @@ export default function CampaignDetail() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         ))}

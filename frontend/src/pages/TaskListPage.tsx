@@ -132,6 +132,7 @@ export default function TaskListPage({ workType, title }: { workType?: 'CAMPAIGN
         </select>
       </div>
 
+      <div className="table-scroll">
       <table>
         <thead>
           <tr>
@@ -161,6 +162,7 @@ export default function TaskListPage({ workType, title }: { workType?: 'CAMPAIGN
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

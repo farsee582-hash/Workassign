@@ -184,7 +184,7 @@ th { color: var(--text-muted); font-weight: 600; }
 }
 .section-title h2 { margin: 0; font-size: 1.15rem; }
 
-.tab-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .tab-bar button {
   padding: 8px 14px;
   border: 1px solid var(--border);
@@ -195,4 +195,163 @@ th { color: var(--text-muted); font-weight: 600; }
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);
+}
+
+/* --- Month-grid calendar --- */
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.calendar-nav-controls { display: flex; gap: 6px; align-items: center; }
+.calendar-month-label { margin: 0; font-size: 1.1rem; font-weight: 700; }
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.month-grid-weekday {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+.month-grid-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 92px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+.month-grid-cell.outside { background: #fafbfc; color: #b7bec9; }
+.month-grid-cell.today { border-color: var(--primary); background: #eef2ff; }
+.month-grid-cell.selected { box-shadow: 0 0 0 2px var(--primary) inset; }
+.month-grid-daynum { font-size: 0.82rem; font-weight: 600; }
+.month-grid-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+.month-grid-pill {
+  display: block;
+  width: 100%;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #e7ebf3;
+  color: #3a4557;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.month-grid-pill.more { background: transparent; color: var(--text-muted); font-weight: 600; padding-left: 0; }
+
+@media (max-width: 768px) {
+  .month-grid { gap: 3px; }
+  .month-grid-cell { min-height: 64px; padding: 3px; border-radius: 6px; }
+  .month-grid-daynum { font-size: 0.72rem; }
+  .month-grid-pill { font-size: 0.58rem; padding: 0 3px; }
+  .month-grid-weekday { font-size: 0.62rem; padding: 2px 0; }
+}
+
+/* Tables scroll within their own container instead of forcing page-wide
+   horizontal scroll on narrow screens. */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll table { min-width: 560px; }
+
+/* Mobile top bar with hamburger toggle; hidden on desktop widths. */
+.mobile-topbar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  background: #16213a;
+  color: #fff;
+  padding: 10px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.mobile-topbar h1 { font-size: 1.05rem; margin: 0; }
+.hamburger-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  padding: 6px;
+}
+.hamburger-btn span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: #fff;
+  border-radius: 2px;
+}
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-topbar { display: flex; }
+  .app-shell { flex-direction: column; }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 78vw;
+    max-width: 280px;
+    transform: translateX(-100%);
+    transition: transform .2s ease;
+    z-index: 50;
+    overflow-y: auto;
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 40;
+  }
+
+  .content { padding: 16px; max-width: 100%; }
+
+  .form-grid { grid-template-columns: 1fr; }
+  .charts-grid { grid-template-columns: 1fr !important; }
+
+  .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .kpi-card .value { font-size: 1.3rem; }
+
+  .login-box { width: 100%; max-width: 340px; padding: 20px; }
+
+  input, select, textarea, .btn, button {
+    font-size: 16px; /* prevents iOS Safari auto-zoom on focus */
+  }
+  .btn, button { min-height: 40px; }
+
+  .section-title { flex-wrap: wrap; gap: 8px; }
 }

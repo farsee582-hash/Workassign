@@ -113,6 +113,7 @@ export default function RecurringWork() {
         </form>
       )}
 
+      <div className="table-scroll">
       <table>
         <thead><tr><th>Title</th><th>Department</th><th>Assigned To</th><th>Recurrence</th><th>Priority</th><th>Status</th><th></th></tr></thead>
         <tbody>
@@ -134,6 +135,7 @@ export default function RecurringWork() {
           {templates.length === 0 && <tr><td colSpan={7} style={{ color: '#888' }}>No recurring templates yet.</td></tr>}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

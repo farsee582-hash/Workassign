@@ -222,6 +222,7 @@ export default function Campaigns() {
         </form>
       )}
 
+      <div className="table-scroll">
       <table>
         <thead>
           <tr><th>Campaign #</th><th>Code</th><th>Name</th><th>Coordinator</th><th>Status</th><th>Priority</th><th>Tasks</th><th>Dates</th></tr>
@@ -242,6 +243,7 @@ export default function Campaigns() {
           {filtered.length === 0 && <tr><td colSpan={8} style={{ color: '#888' }}>No campaigns found.</td></tr>}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
