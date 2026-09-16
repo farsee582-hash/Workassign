@@ -12,6 +12,8 @@ import dashboardRoutes from './routes/dashboard';
 const app = express();
 
 // Allow the deployed frontend origin (and local dev) to call this API.
+// "*" must be passed through as-is (not inside an array) or the cors
+// package treats it as a literal origin string instead of a wildcard.
 const allowedOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((o) => o.trim())
@@ -19,7 +21,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '')
 
 app.use(
   cors({
-    origin: allowedOrigins.length ? allowedOrigins : true,
+    origin: allowedOrigins.includes('*') || !allowedOrigins.length ? true : allowedOrigins,
   }),
 );
 app.use(express.json());
