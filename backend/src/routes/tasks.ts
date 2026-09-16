@@ -8,7 +8,9 @@ import { logAudit } from '../lib/audit';
 const router = Router();
 router.use(authenticate);
 
-const upload = multer({ dest: path.join(__dirname, '..', '..', 'uploads') });
+// Serverless (Vercel) has no persistent disk, so uploads are kept in memory and
+// only metadata is stored (no file bytes persisted). See README for details.
+const upload = multer({ storage: multer.memoryStorage() });
 
 function withOverdue<T extends { dueDate: Date; status: string }>(task: T) {
   return {
@@ -159,7 +161,8 @@ router.post('/:id/attachments', upload.single('file'), async (req, res) => {
     data: {
       taskId: req.params.id,
       fileName: req.file.originalname,
-      filePath: `/uploads/${req.file.filename}`,
+      // No persistent disk on serverless deploys; store metadata only (no bytes).
+      filePath: `unavailable://${req.file.originalname}`,
       uploadedById: req.user!.id,
     },
   });

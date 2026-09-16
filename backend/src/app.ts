@@ -1,0 +1,38 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import authRoutes from './routes/auth';
+import userRoutes from './routes/users';
+import departmentRoutes from './routes/departments';
+import campaignRoutes from './routes/campaigns';
+import taskRoutes from './routes/tasks';
+import dashboardRoutes from './routes/dashboard';
+
+const app = express();
+
+// Allow the deployed frontend origin (and local dev) to call this API.
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: allowedOrigins.length ? allowedOrigins : true,
+  }),
+);
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+// Each router below applies the `authenticate` middleware itself, except /auth.
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use('/departments', departmentRoutes);
+app.use('/campaigns', campaignRoutes);
+app.use('/tasks', taskRoutes);
+app.use('/dashboard', dashboardRoutes);
+
+export default app;
