@@ -23,8 +23,13 @@ const userSelect = {
   permissionLevel: true,
 };
 
-router.get('/', async (_req, res) => {
-  const users = await prisma.user.findMany({ select: userSelect, orderBy: { name: 'asc' } });
+router.get('/', async (req, res) => {
+  const { departmentId, role } = req.query as Record<string, string | undefined>;
+  const users = await prisma.user.findMany({
+    where: { departmentId: departmentId || undefined, role: role || undefined },
+    select: userSelect,
+    orderBy: { name: 'asc' },
+  });
   res.json(users);
 });
 

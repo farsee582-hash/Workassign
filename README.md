@@ -118,7 +118,8 @@ Marketing and Finance with sample tasks, and two daily-work tasks.
 ## Data model
 
 `User`, `Department`, `SubDepartment`, `Campaign`, `CampaignDepartment`,
-`Task`, `TaskComment`, `TaskAttachment`, `TaskDependency`, `AuditLog` — see
+`CampaignAccess`, `CampaignMessage`, `Task`, `TaskComment`, `TaskAttachment`,
+`TaskDependency`, `RecurringWorkTemplate`, `AuditLog` — see
 `backend/prisma/schema.prisma` for the full schema.
 
 ## Role-based visibility
@@ -126,24 +127,63 @@ Marketing and Finance with sample tasks, and two daily-work tasks.
 Enforced server-side in `backend/src/middleware/auth.ts` and the task
 scoping helper in `backend/src/routes/tasks.ts`:
 
-- **Management** (GMA / AGM / ADMIN): see all tasks and campaigns.
+- **Management** (GMA / AGM / ADMIN): see all tasks and campaigns, always.
 - **Department Manager / Coordinator**: see their department's tasks.
 - **Assistant Manager**: see tasks they created or are assigned.
 - **Executive**: see only tasks assigned to them.
 
+Campaign visibility (including a campaign's tasks and its chat) is further
+restricted by **Campaign Access**: a per-campaign list of departments and/or
+individual staff allowed to view/act on it (`CampaignAccess` model,
+`backend/src/routes/campaigns.ts` → `hasCampaignAccess`). Management roles
+and the campaign's Coordinator always have full access regardless of this
+list; a campaign with no access rows configured falls back to "anyone in an
+involved department" so pre-existing campaigns keep working. The access
+picker lives on the campaign create form (`frontend/src/pages/Campaigns.tsx`).
+
+**Who can add work**: GMA, AGM, Coordinator, Department Manager, and Admin
+(plus a campaign's own Coordinator for that campaign's tasks) can use
+"Add Task" (on a campaign) and "Add Work" (on Daily Work) — both open a
+Department → Staff picker with "Select All Staff" and bulk-create one task
+per selected person via `POST /tasks/bulk`.
+
 ## Key API endpoints
 
 - `POST /auth/login`
-- `GET/POST/PUT/DELETE /users`, `/departments`, `/departments/:id/sub-departments`
-- `GET/POST/PUT/DELETE /campaigns`, `POST /campaigns/:id/departments`,
+- `GET/POST/PUT/DELETE /users` (supports `?departmentId=`, `?role=` filters),
+  `/departments`, `/departments/:id/sub-departments`
+- `GET/POST/PUT/DELETE /campaigns`, `POST/DELETE /campaigns/:id/departments`,
+  `PUT /campaigns/:id/access` (replace the access list),
+  `GET/POST /campaigns/:id/messages` (chat),
   `GET /campaigns/:id/progress` (auto-calculated department completion %)
-- `GET/POST/PUT/DELETE /tasks`, `PATCH /tasks/:id/status`,
-  `PATCH /tasks/:id/assign`, `POST /tasks/:id/comments`,
-  `POST /tasks/:id/attachments`
-- `GET /dashboard/me`, `GET /dashboard/management`
+- `GET/POST/PUT/DELETE /tasks`, `POST /tasks/bulk` (bulk-assign to many
+  staff), `PATCH /tasks/:id/status`, `PATCH /tasks/:id/assign`,
+  `POST /tasks/:id/comments`, `POST /tasks/:id/attachments`
+- `GET/POST/PATCH /recurring-work`, `GET /recurring-work/generate`
+  (idempotently creates today's occurrences — see tradeoff below)
+- `GET /dashboard/me`, `GET /dashboard/management` (now accepts
+  `?range=today|week|month|custom&from&to`, `?departmentId=`, `?role=`)
 
 Overdue status is never stored — it's computed on every response as
 `dueDate < now && status not in (COMPLETED, CANCELLED)`.
+
+## Recurring Daily Work — "generate on page load" tradeoff
+
+There is no cron job or scheduler available in this deployment environment
+(Vercel serverless functions only run in response to a request). Rather than
+leave recurring work unimplemented, `RecurringWorkTemplate` records are
+turned into real, independently-completable `Task` rows (workType=DAILY,
+linked back via `Task.recurringTemplateId`) by `GET /recurring-work/generate`,
+which the frontend calls once whenever the Daily Work, Calendar, or Recurring
+Work page loads. The endpoint is idempotent — it checks whether today's
+occurrence already exists (by template + assignee + start-of-day) before
+creating one — so calling it repeatedly, from multiple pages or multiple
+users, never creates duplicates. The tradeoff: if nobody opens one of those
+pages on a given day, that day's occurrences are simply generated the next
+time someone does (backfill only happens for "today", not missed past days).
+A real cron trigger (e.g. Vercel Cron once available, or an external
+scheduler hitting `/recurring-work/generate`) would remove this limitation
+without any other code changes.
 
 ## Roadmap / Phase 2 & 3 (not built here)
 
@@ -151,7 +191,39 @@ Overdue status is never stored — it's computed on every response as
 - Escalation workflows beyond the simple `approvalStatus` field
 - Enforcement of `TaskDependency` (blocking dependent tasks until
   prerequisites complete) — the data model exists, the rule is not enforced
-- Deeper department/staff dashboard drill-down views and workload monitoring
 - Data exports (CSV/PDF/Excel reports)
 - Audit trail UI (the `AuditLog` table is populated but has no admin screen)
-- Calendar views beyond a simple day/week/month due-date list
+- A real cron/scheduler for recurring work (see tradeoff above) — currently
+  generated lazily on page load instead
+- Campaign chat is polling-based (every ~4s), not websockets — fine for MVP
+  scale but not real-time at larger scale
+- Server-side pagination for task/campaign lists (current lists load
+  everything the caller can see and filter client-side, which is fine at
+  MVP data volumes but won't scale indefinitely)
+
+## Done in this update (additive, on top of Phase 1)
+
+- Campaign Number auto-generation (`CAM-YYYY-NNN`), Campaign Coordinator
+  (replacing Owner), Budget field removed
+- Campaign chat (`CampaignMessage`), polling-based
+- Campaign Access control (departments + individual staff), enforced on
+  campaign detail, its tasks, and its chat
+- Permission-gated "Add Task" (campaign) / "Add Work" (daily) bulk-assign
+  flows (department → staff picker → Select All)
+- Recurring Daily Work templates (`RecurringWorkTemplate`) with
+  daily/weekly/monthly recurrence and lazy "generate on page load" occurrence
+  creation
+- Calendar: task type (Campaign/Daily/Recurring) badges, completed/overdue
+  styling
+- Management Dashboard: dependency-free SVG bar/donut charts (task status,
+  department completion, campaign progress, staff workload) plus Date
+  Range / Department / Role filters wired into `/dashboard/management`
+- "My Work" sub-filter bar (All/Pending/In Progress/Due Today/Upcoming/
+  Overdue/Completed/Campaign/Daily/Recurring)
+- Search + filter controls on Campaigns and Task list screens (client-side
+  filtering over the already-scoped list)
+- Staff, Departments, Roles/Hierarchy and Permissions unified into one
+  "Organization & Access Management" page with tabs (`/admin`); old
+  `/staff` and `/departments` links redirect there
+- Password show/hide eye-icon toggle on Login and the admin staff-creation
+  form (`frontend/src/components/PasswordInput.tsx`)

@@ -8,6 +8,7 @@ import departmentRoutes from './routes/departments';
 import campaignRoutes from './routes/campaigns';
 import taskRoutes from './routes/tasks';
 import dashboardRoutes from './routes/dashboard';
+import recurringWorkRoutes from './routes/recurringWork';
 
 const app = express();
 
@@ -36,5 +37,6 @@ app.use('/departments', departmentRoutes);
 app.use('/campaigns', campaignRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/recurring-work', recurringWorkRoutes);
 
 export default app;

@@ -7,11 +7,9 @@ const navItems = [
   { to: '/calendar', label: 'Calendar' },
   { to: '/campaigns', label: 'Campaigns' },
   { to: '/daily-work', label: 'Daily Work' },
-  { to: '/departments', label: 'Departments' },
-  { to: '/staff', label: 'Staff' },
+  { to: '/recurring-work', label: 'Recurring Work' },
+  { to: '/admin', label: 'Organization & Access' },
 ];
-
-const adminRoles = ['ADMIN', 'GMA'];
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -26,7 +24,6 @@ export default function Layout() {
               {item.label}
             </NavLink>
           ))}
-          {user && adminRoles.includes(user.role) && <NavLink to="/admin">Admin Settings</NavLink>}
         </nav>
         <div className="user-info">
           <div>{user?.name}</div>

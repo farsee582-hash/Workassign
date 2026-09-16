@@ -30,6 +30,8 @@ model Department {
   users          User[]
   campaigns      CampaignDepartment[]
   tasks          Task[]
+  campaignAccess CampaignAccess[]
+  recurringTemplates RecurringWorkTemplate[]
   createdAt      DateTime        @default(now())
 }
 
@@ -68,33 +70,39 @@ model User {
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
-  ownedCampaigns     Campaign[]      @relation("CampaignOwner")
+  coordinatedCampaigns Campaign[]  @relation("CampaignCoordinator")
   createdTasks       Task[]          @relation("TaskCreatedBy")
   assignedTasks      Task[]          @relation("TaskAssignedTo")
   reviewedTasks       Task[]          @relation("TaskReviewer")
   comments           TaskComment[]
   attachments        TaskAttachment[]
   auditLogs          AuditLog[]
+  campaignMessages    CampaignMessage[]
+  campaignAccess      CampaignAccess[]
+  recurringTemplatesCreated RecurringWorkTemplate[] @relation("RecurringCreatedBy")
+  recurringTemplatesAssigned RecurringWorkTemplate[] @relation("RecurringAssignedTo")
 }
 
 model Campaign {
-  id          String         @id @default(cuid())
-  code        String         @unique
-  name        String
-  type        String?
-  description String?
-  startDate   DateTime
-  endDate     DateTime
-  ownerId     String
-  owner       User           @relation("CampaignOwner", fields: [ownerId], references: [id])
-  priority    String         @default("MEDIUM")
-  budget      Float?
-  status      String         @default("DRAFT")
-  notes       String?
-  departments CampaignDepartment[]
-  tasks       Task[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  code            String         @unique
+  campaignNumber  String         @unique
+  name            String
+  type            String?
+  description     String?
+  startDate       DateTime
+  endDate         DateTime
+  coordinatorId   String
+  coordinator     User           @relation("CampaignCoordinator", fields: [coordinatorId], references: [id])
+  priority        String         @default("MEDIUM")
+  status          String         @default("DRAFT")
+  notes           String?
+  departments     CampaignDepartment[]
+  tasks           Task[]
+  messages        CampaignMessage[]
+  access          CampaignAccess[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model CampaignDepartment {
@@ -104,6 +112,55 @@ model CampaignDepartment {
   department   Department @relation(fields: [departmentId], references: [id])
 
   @@id([campaignId, departmentId])
+}
+
+// Who (beyond Management roles, who always have full access) can view/act on a
+// campaign, its tasks and its chat: either an entire department (userId null)
+// or one individual staff member (userId set, departmentId still set for context).
+model CampaignAccess {
+  id           String      @id @default(cuid())
+  campaignId   String
+  campaign     Campaign    @relation(fields: [campaignId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id])
+  createdAt    DateTime    @default(now())
+
+  @@unique([campaignId, departmentId, userId])
+}
+
+model CampaignMessage {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  text       String
+  createdAt  DateTime @default(now())
+}
+
+// A recurring template that "generates" today's Task occurrence on demand
+// (there is no cron/scheduler available in this environment — see README).
+model RecurringWorkTemplate {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  departmentId    String
+  department      Department @relation(fields: [departmentId], references: [id])
+  assignedToId    String?   // null = generate one occurrence per active staff member in the department
+  assignedTo      User?     @relation("RecurringAssignedTo", fields: [assignedToId], references: [id])
+  recurrenceType  String    // DAILY | WEEKLY | MONTHLY
+  weekday         Int?      // 0-6 (Sun-Sat), for WEEKLY
+  dayOfMonth      Int?      // 1-31, for MONTHLY
+  priority        String    @default("MEDIUM")
+  createdById     String
+  createdBy       User      @relation("RecurringCreatedBy", fields: [createdById], references: [id])
+  active          Boolean   @default(true)
+  startDate       DateTime  @default(now())
+  endDate         DateTime?
+  createdAt       DateTime  @default(now())
+  occurrences     Task[]
 }
 
 model Task {
@@ -130,6 +187,8 @@ model Task {
   status            String     @default("NOT_STARTED")
   completionPercent Int        @default(0)
   approvalStatus    String         @default("NOT_SUBMITTED")
+  recurringTemplateId String?
+  recurringTemplate RecurringWorkTemplate? @relation(fields: [recurringTemplateId], references: [id])
   comments          TaskComment[]
   attachments       TaskAttachment[]
   dependsOn         TaskDependency[] @relation("TaskDependsOn")

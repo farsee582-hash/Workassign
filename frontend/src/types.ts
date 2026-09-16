@@ -39,22 +39,58 @@ export interface User {
   permissionLevel: number;
 }
 
+export interface CampaignAccessRow {
+  id: string;
+  departmentId: string | null;
+  department: { id: string; name: string } | null;
+  userId: string | null;
+  user: { id: string; name: string; departmentId: string | null } | null;
+}
+
 export interface Campaign {
   id: string;
   code: string;
+  campaignNumber: string;
   name: string;
   type: string | null;
   description: string | null;
   startDate: string;
   endDate: string;
-  ownerId: string;
-  owner: { id: string; name: string };
+  coordinatorId: string;
+  coordinator: { id: string; name: string };
   priority: string;
-  budget: number | null;
   status: string;
   notes: string | null;
   departments: { department: Department }[];
+  access: CampaignAccessRow[];
   _count?: { tasks: number };
+}
+
+export interface CampaignMessage {
+  id: string;
+  campaignId: string;
+  userId: string;
+  user: { id: string; name: string; department: { name: string } | null };
+  text: string;
+  createdAt: string;
+}
+
+export interface RecurringWorkTemplate {
+  id: string;
+  title: string;
+  description: string | null;
+  departmentId: string;
+  department: { id: string; name: string };
+  assignedToId: string | null;
+  assignedTo: { id: string; name: string } | null;
+  recurrenceType: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  weekday: number | null;
+  dayOfMonth: number | null;
+  priority: string;
+  active: boolean;
+  createdBy: { id: string; name: string };
+  startDate: string;
+  endDate: string | null;
 }
 
 export interface Task {
@@ -81,6 +117,7 @@ export interface Task {
   status: string;
   completionPercent: number;
   approvalStatus: string;
+  recurringTemplateId?: string | null;
   overdue: boolean;
   comments?: TaskComment[];
   attachments?: TaskAttachment[];
@@ -141,7 +178,10 @@ export interface MyDashboard {
 }
 
 export interface ManagementDashboard {
+  filters: { range: string; departmentId: string | null; role: string | null };
   campaigns: { total: number; active: number; completed: number };
   tasks: { total: number; pending: number; completed: number; overdue: number };
   staffWithPendingWork: { id: string; name: string; count: number }[];
+  departmentCompletion: { id: string; name: string; total: number; completed: number; completionPercent: number }[];
+  campaignProgress: { id: string; name: string; campaignNumber: string; status: string; taskCount: number; completionPercent: number }[];
 }

@@ -51,3 +51,11 @@ export function requireRoles(...roles: string[]) {
 export function isManagement(role: string): boolean {
   return MANAGEMENT_ROLES.includes(role);
 }
+
+// Roles allowed to add campaign tasks / daily work in bulk (item 3 & 4 of the
+// new requirements): GMA, AGM, Coordinator, Department Manager, Admin.
+export const WORK_ASSIGNERS = ['GMA', 'AGM', 'COORDINATOR', 'MANAGER', 'ADMIN'];
+
+export function canAssignWork(role: string): boolean {
+  return WORK_ASSIGNERS.includes(role);
+}

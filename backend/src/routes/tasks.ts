@@ -2,8 +2,9 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { prisma } from '../lib/prisma';
-import { AuthUser, authenticate, isManagement } from '../middleware/auth';
+import { AuthUser, authenticate, canAssignWork, isManagement } from '../middleware/auth';
 import { logAudit } from '../lib/audit';
+import { hasCampaignAccess } from './campaigns';
 
 const router = Router();
 router.use(authenticate);
@@ -58,7 +59,18 @@ router.get('/', async (req, res) => {
     include,
     orderBy: { dueDate: 'asc' },
   });
-  res.json(tasks.map(withOverdue));
+  // Additionally filter out campaign tasks the caller lacks campaign access to.
+  const campaignIds = Array.from(new Set(tasks.filter((t) => t.campaignId).map((t) => t.campaignId as string)));
+  const accessible = new Set<string>();
+  if (!isManagement(req.user!.role)) {
+    for (const cId of campaignIds) {
+      if (await hasCampaignAccess(req.user!, cId)) accessible.add(cId);
+    }
+  }
+  const visible = isManagement(req.user!.role)
+    ? tasks
+    : tasks.filter((t) => !t.campaignId || accessible.has(t.campaignId));
+  res.json(visible.map(withOverdue));
 });
 
 router.get('/:id', async (req, res) => {
@@ -67,18 +79,27 @@ router.get('/:id', async (req, res) => {
     include: { ...include, comments: { include: { user: { select: { id: true, name: true } } }, orderBy: { createdAt: 'asc' } }, attachments: true },
   });
   if (!task) return res.status(404).json({ error: 'Task not found' });
+  if (task.campaignId && !(await hasCampaignAccess(req.user!, task.campaignId))) {
+    return res.status(403).json({ error: 'You do not have access to this campaign task' });
+  }
   res.json(withOverdue(task));
 });
+
+function newTaskId() {
+  return `T-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
+}
 
 router.post('/', async (req, res) => {
   const b = req.body;
   if (!b.title || !b.workType || !b.departmentId || !b.assignedToId || !b.startDate || !b.dueDate) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-  const taskId = `T-${Date.now().toString(36).toUpperCase()}`;
+  if (b.campaignId && !(await hasCampaignAccess(req.user!, b.campaignId))) {
+    return res.status(403).json({ error: 'You do not have access to this campaign' });
+  }
   const task = await prisma.task.create({
     data: {
-      taskId,
+      taskId: newTaskId(),
       title: b.title,
       description: b.description,
       workType: b.workType,
@@ -97,6 +118,47 @@ router.post('/', async (req, res) => {
   });
   await logAudit('Task', task.id, 'CREATE', req.user!.id, `Assigned to ${task.assignedTo.name}`);
   res.status(201).json(withOverdue(task));
+});
+
+// Bulk-create: one task per staff member (item 3 & 4 — Add Task / Add Work
+// flows). Gated to roles allowed to assign work; for campaign tasks also
+// requires campaign access.
+router.post('/bulk', async (req, res) => {
+  if (!canAssignWork(req.user!.role)) {
+    return res.status(403).json({ error: 'You are not permitted to assign work' });
+  }
+  const b = req.body;
+  const { title, description, workType, departmentId, subDepartmentId, campaignId, startDate, dueDate, priority, assignedToIds } = b;
+  if (!title || !workType || !departmentId || !startDate || !dueDate || !Array.isArray(assignedToIds) || assignedToIds.length === 0) {
+    return res.status(400).json({ error: 'Missing required fields (title, workType, departmentId, startDate, dueDate, assignedToIds[])' });
+  }
+  if (campaignId && !(await hasCampaignAccess(req.user!, campaignId))) {
+    return res.status(403).json({ error: 'You do not have access to this campaign' });
+  }
+  const created = [];
+  for (const assignedToId of assignedToIds as string[]) {
+    const task = await prisma.task.create({
+      data: {
+        taskId: newTaskId(),
+        title,
+        description,
+        workType,
+        campaignId: campaignId ?? null,
+        departmentId,
+        subDepartmentId: subDepartmentId ?? null,
+        assignedToId,
+        createdById: req.user!.id,
+        startDate: new Date(startDate),
+        dueDate: new Date(dueDate),
+        priority: priority ?? 'MEDIUM',
+        status: 'ASSIGNED',
+      },
+      include,
+    });
+    await logAudit('Task', task.id, 'CREATE', req.user!.id, `Bulk-assigned to ${task.assignedTo.name}`);
+    created.push(withOverdue(task));
+  }
+  res.status(201).json(created);
 });
 
 router.put('/:id', async (req, res) => {

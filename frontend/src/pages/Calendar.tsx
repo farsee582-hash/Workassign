@@ -15,7 +15,11 @@ export default function Calendar() {
   const [mode, setMode] = useState<ViewMode>('week');
 
   useEffect(() => {
-    api.get('/tasks').then((r) => setTasks(r.data));
+    // Ensure today's recurring occurrences exist before loading (no cron in
+    // this environment — see README).
+    api.get('/recurring-work/generate').catch(() => {}).finally(() => {
+      api.get('/tasks').then((r) => setTasks(r.data));
+    });
   }, []);
 
   const grouped = useMemo(() => {
@@ -54,8 +58,13 @@ export default function Calendar() {
           <table style={{ marginTop: 6 }}>
             <tbody>
               {dayTasks.map((t) => (
-                <tr key={t.id}>
+                <tr key={t.id} style={{ opacity: t.status === 'COMPLETED' ? 0.6 : 1 }}>
                   <td><Link to={`/tasks/${t.id}`}>{t.title}</Link></td>
+                  <td>
+                    <span className="badge" style={{ fontSize: 11 }}>
+                      {t.campaign ? 'Campaign' : t.recurringTemplateId ? 'Recurring' : 'Daily'}
+                    </span>
+                  </td>
                   <td>{t.department.name}</td>
                   <td>{t.assignedTo.name}</td>
                   <td><StatusBadge status={t.status} overdue={t.overdue} /></td>
