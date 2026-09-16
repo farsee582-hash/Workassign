@@ -1,0 +1,198 @@
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --border: #e1e5eb;
+  --text: #1c2430;
+  --text-muted: #66707e;
+  --primary: #2f5fed;
+  --primary-dark: #2347c4;
+  --danger: #d64545;
+  --warn: #d68a1e;
+  --success: #23935b;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a { color: var(--primary); text-decoration: none; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.btn:hover { background: var(--primary-dark); }
+.btn.secondary {
+  background: var(--surface);
+  color: var(--primary);
+}
+.btn.small { padding: 4px 10px; font-size: 0.85rem; }
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  background: #16213a;
+  color: #dbe3f2;
+  padding: 20px 0;
+  flex-shrink: 0;
+}
+.sidebar h1 {
+  font-size: 1.1rem;
+  padding: 0 20px 20px;
+  margin: 0;
+  color: #fff;
+}
+.sidebar nav a {
+  display: block;
+  padding: 10px 20px;
+  color: #b6c2dc;
+  font-size: 0.92rem;
+}
+.sidebar nav a.active, .sidebar nav a:hover {
+  background: #223058;
+  color: #fff;
+}
+.sidebar .user-info {
+  padding: 16px 20px;
+  border-top: 1px solid #2a3757;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #93a1c2;
+}
+
+.content { flex: 1; padding: 24px 32px; max-width: 1200px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 16px 0 24px;
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.kpi-card .value { font-size: 1.6rem; font-weight: 700; }
+.kpi-card .label { color: var(--text-muted); font-size: 0.82rem; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+th { color: var(--text-muted); font-weight: 600; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #e7ebf3;
+  color: #3a4557;
+}
+.badge.overdue { background: #fbe3e3; color: var(--danger); }
+.badge.completed { background: #e1f5ea; color: var(--success); }
+.badge.progress { background: #fff2df; color: var(--warn); }
+
+.progress-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: #e6e9ef;
+  overflow: hidden;
+}
+.progress-bar > div {
+  height: 100%;
+  background: var(--primary);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg);
+}
+.login-box {
+  width: 340px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px;
+}
+.login-box h2 { margin-top: 0; }
+.error-text { color: var(--danger); font-size: 0.85rem; }
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 22px 0 10px;
+}
+.section-title h2 { margin: 0; font-size: 1.15rem; }
+
+.tab-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab-bar button {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 6px;
+}
+.tab-bar button.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
