@@ -86,14 +86,14 @@ model User {
 model Campaign {
   id              String         @id @default(cuid())
   code            String         @unique
-  campaignNumber  String         @unique
+  campaignNumber  String?        @unique
   name            String
   type            String?
   description     String?
   startDate       DateTime
   endDate         DateTime
-  coordinatorId   String
-  coordinator     User           @relation("CampaignCoordinator", fields: [coordinatorId], references: [id])
+  coordinatorId   String?
+  coordinator     User?          @relation("CampaignCoordinator", fields: [coordinatorId], references: [id])
   priority        String         @default("MEDIUM")
   status          String         @default("DRAFT")
   notes           String?

@@ -20,7 +20,7 @@ async function generateCampaignNumber(): Promise<string> {
     where: { campaignNumber: { startsWith: prefix } },
     orderBy: { campaignNumber: 'desc' },
   });
-  const lastSeq = last ? parseInt(last.campaignNumber.slice(prefix.length), 10) || 0 : 0;
+  const lastSeq = last?.campaignNumber ? parseInt(last.campaignNumber.slice(prefix.length), 10) || 0 : 0;
   const next = (lastSeq + 1).toString().padStart(3, '0');
   return `${prefix}${next}`;
 }

@@ -50,14 +50,14 @@ export interface CampaignAccessRow {
 export interface Campaign {
   id: string;
   code: string;
-  campaignNumber: string;
+  campaignNumber: string | null;
   name: string;
   type: string | null;
   description: string | null;
   startDate: string;
   endDate: string;
-  coordinatorId: string;
-  coordinator: { id: string; name: string };
+  coordinatorId: string | null;
+  coordinator: { id: string; name: string } | null;
   priority: string;
   status: string;
   notes: string | null;
@@ -183,5 +183,5 @@ export interface ManagementDashboard {
   tasks: { total: number; pending: number; completed: number; overdue: number };
   staffWithPendingWork: { id: string; name: string; count: number }[];
   departmentCompletion: { id: string; name: string; total: number; completed: number; completionPercent: number }[];
-  campaignProgress: { id: string; name: string; campaignNumber: string; status: string; taskCount: number; completionPercent: number }[];
+  campaignProgress: { id: string; name: string; campaignNumber: string | null; status: string; taskCount: number; completionPercent: number }[];
 }
