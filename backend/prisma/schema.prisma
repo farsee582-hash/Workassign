@@ -136,7 +136,17 @@ model CampaignMessage {
   campaign   Campaign @relation(fields: [campaignId], references: [id])
   userId     String
   user       User     @relation(fields: [userId], references: [id])
-  text       String
+  // Text is now optional — a message can be text-only, file-only, or both.
+  // Nullable rather than a `@default("")` backfill so this change applies
+  // cleanly to a live table that already has rows (see README).
+  text       String?
+  // File attachment, stored inline as a data URL (base64) since Vercel
+  // serverless functions have no persistent disk and no object-storage
+  // credentials are configured — see README "Attachment storage tradeoff".
+  // All three are nullable together: a text-only message leaves them null.
+  attachmentName String?
+  attachmentType String?
+  attachmentData String?  @db.Text
   createdAt  DateTime @default(now())
 }
 

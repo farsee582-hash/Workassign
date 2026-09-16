@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Campaign, CampaignMessage, CampaignProgress, Department } from '../types';
@@ -10,12 +10,53 @@ import AssignWorkForm from '../components/AssignWorkForm';
 const canManage = ['ADMIN', 'GMA', 'AGM', 'MANAGER', 'COORDINATOR'];
 const canAssignRoles = ['GMA', 'AGM', 'COORDINATOR', 'MANAGER', 'ADMIN'];
 
+// Client-side warning threshold, matching the server's hard cap (see README
+// "Attachment storage tradeoff" — attachments are stored inline as base64).
+const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024;
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function AttachmentPreview({ m }: { m: CampaignMessage }) {
+  if (!m.attachmentData) return null;
+  const isImage = m.attachmentType?.startsWith('image/');
+  if (isImage) {
+    return (
+      <a href={m.attachmentData} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 4 }}>
+        <img
+          src={m.attachmentData}
+          alt={m.attachmentName ?? 'attachment'}
+          style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 6, display: 'block' }}
+        />
+      </a>
+    );
+  }
+  return (
+    <a
+      href={m.attachmentData}
+      download={m.attachmentName ?? 'attachment'}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: 13, wordBreak: 'break-all' }}
+    >
+      📎 {m.attachmentName ?? 'Download attachment'}
+    </a>
+  );
+}
+
 function ChatPanel({ campaignId }: { campaignId: string }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<CampaignMessage[]>([]);
   const [text, setText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function load() {
     api.get(`/campaigns/${campaignId}/messages`).then((r) => setMessages(r.data)).catch(() => {});
@@ -31,14 +72,38 @@ function ChatPanel({ campaignId }: { campaignId: string }) {
     bottomRef.current?.scrollIntoView({ block: 'nearest' });
   }, [messages.length]);
 
+  function onFileChosen(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    setError('');
+    if (f && f.size > MAX_ATTACHMENT_BYTES) {
+      setError(`File too large — max ${MAX_ATTACHMENT_BYTES / (1024 * 1024)}MB.`);
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+    setFile(f);
+  }
+
   async function send(e: FormEvent) {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() && !file) return;
     setSending(true);
+    setError('');
     try {
-      await api.post(`/campaigns/${campaignId}/messages`, { text: text.trim() });
+      const payload: Record<string, unknown> = {};
+      if (text.trim()) payload.text = text.trim();
+      if (file) {
+        payload.attachmentName = file.name;
+        payload.attachmentType = file.type || 'application/octet-stream';
+        payload.attachmentData = await fileToDataUrl(file);
+      }
+      await api.post(`/campaigns/${campaignId}/messages`, payload);
       setText('');
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to send message.');
     } finally {
       setSending(false);
     }
@@ -54,19 +119,44 @@ function ChatPanel({ campaignId }: { campaignId: string }) {
               <span><strong>{m.user.name}</strong>{m.user.department ? ` · ${m.user.department.name}` : ''}</span>
               <span>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
-            <div style={{ fontSize: 14 }}>{m.text}</div>
+            {m.text && <div style={{ fontSize: 14 }}>{m.text}</div>}
+            <AttachmentPreview m={m} />
           </div>
         ))}
         {messages.length === 0 && <p style={{ color: '#888' }}>No messages yet.</p>}
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={send} style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+      {error && <div className="error-text" style={{ marginTop: 6 }}>{error}</div>}
+      {file && (
+        <div style={{ fontSize: 12, color: '#666', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+          📎 {file.name}
+          <button type="button" className="btn secondary small" onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}>
+            Remove
+          </button>
+        </div>
+      )}
+      <form onSubmit={send} style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
         <input
           placeholder="Type a message…"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          style={{ flex: 1 }}
+          style={{ flex: '1 1 160px' }}
         />
+        <input
+          ref={fileInputRef}
+          type="file"
+          id={`chat-file-${campaignId}`}
+          style={{ display: 'none' }}
+          onChange={onFileChosen}
+        />
+        <label
+          htmlFor={`chat-file-${campaignId}`}
+          className="btn secondary small"
+          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          title="Attach a file"
+        >
+          📎
+        </label>
         <button className="btn small" disabled={sending}>Send</button>
       </form>
     </div>

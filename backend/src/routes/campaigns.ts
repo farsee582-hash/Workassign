@@ -199,11 +199,44 @@ router.get('/:id/messages', requireCampaignAccess(), async (req, res) => {
   res.json(messages);
 });
 
+// Data URLs are stored inline on the row (see README "Attachment storage
+// tradeoff"), so a hard server-side cap keeps Postgres row size (and the
+// Neon free-tier storage budget) in check, on top of the client-side warning
+// at the same threshold. Vercel serverless functions also cap the whole
+// request body at ~4.5MB, so this is set comfortably under that too.
+const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024; // 3MB of raw file bytes
+
 router.post('/:id/messages', requireCampaignAccess(), async (req, res) => {
-  const { text } = req.body;
-  if (!text || !String(text).trim()) return res.status(400).json({ error: 'text is required' });
+  const { text, attachmentName, attachmentType, attachmentData } = req.body;
+  const trimmedText = text && String(text).trim() ? String(text).trim() : null;
+  const hasAttachment = !!attachmentData;
+
+  if (!trimmedText && !hasAttachment) {
+    return res.status(400).json({ error: 'text or an attachment is required' });
+  }
+
+  if (hasAttachment) {
+    if (!attachmentName || !attachmentType) {
+      return res.status(400).json({ error: 'attachmentName and attachmentType are required with attachmentData' });
+    }
+    // Rough byte-size check on the base64 payload (base64 is ~4/3 the size
+    // of the original bytes, plus a `data:...;base64,` prefix).
+    const base64 = String(attachmentData).split(',').pop() ?? '';
+    const approxBytes = Math.floor((base64.length * 3) / 4);
+    if (approxBytes > MAX_ATTACHMENT_BYTES) {
+      return res.status(413).json({ error: `Attachment too large (max ${MAX_ATTACHMENT_BYTES / (1024 * 1024)}MB)` });
+    }
+  }
+
   const message = await prisma.campaignMessage.create({
-    data: { campaignId: req.params.id, userId: req.user!.id, text: String(text).trim() },
+    data: {
+      campaignId: req.params.id,
+      userId: req.user!.id,
+      text: trimmedText,
+      attachmentName: hasAttachment ? String(attachmentName) : null,
+      attachmentType: hasAttachment ? String(attachmentType) : null,
+      attachmentData: hasAttachment ? String(attachmentData) : null,
+    },
     include: { user: { select: { id: true, name: true, department: { select: { name: true } } } } },
   });
   res.status(201).json(message);

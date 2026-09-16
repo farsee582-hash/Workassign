@@ -25,7 +25,10 @@ app.use(
     origin: allowedOrigins.includes('*') || !allowedOrigins.length ? true : allowedOrigins,
   }),
 );
-app.use(express.json());
+// Campaign chat attachments are sent inline as base64 JSON (see README), so
+// the default 100kb express.json limit is raised. Kept under Vercel's own
+// ~4.5MB serverless request-body cap.
+app.use(express.json({ limit: '4mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));

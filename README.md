@@ -70,6 +70,26 @@ chosen over wiring up Vercel Blob storage to keep the change minimal for
 this MVP demo; swapping in Blob storage later only requires changing the
 `POST /tasks/:id/attachments` handler in `backend/src/routes/tasks.ts`.
 
+**Campaign chat attachments follow the same tradeoff, but actually keep the
+bytes.** `POST /campaigns/:id/messages` accepts an optional file (any type)
+alongside the text, sent as JSON with `attachmentName`, `attachmentType`
+(MIME type) and `attachmentData` (a base64 `data:` URL) — no multipart/disk
+handling needed. The bytes are stored inline on the `CampaignMessage` row
+(`attachmentData String? @db.Text` in `backend/prisma/schema.prisma`) rather
+than discarded, since there's no external object storage configured and no
+credentials to add one without a new required env var. This is fine for an
+MVP at low volume but has real costs: it bloats Postgres row size and counts
+against Neon's storage quota, and every base64 byte is ~33% bigger than the
+original file. A **3MB raw-file cap** is enforced both client-side (instant
+feedback before upload) and server-side (the real guard) in
+`backend/src/routes/campaigns.ts` — set below the requested ~5MB because a
+5MB file becomes ~6.8MB of base64 JSON, over Vercel serverless functions'
+~4.5MB request body limit; 3MB stays safely under that ceiling. Image
+attachments render as inline thumbnails in the chat; everything else renders
+as a filename + download link. If this grows past MVP usage, swap in Vercel
+Blob (or similar) the same way the `TaskAttachment` tradeoff note above
+describes.
+
 ## Getting started
 
 ### Backend
@@ -227,3 +247,16 @@ without any other code changes.
   `/staff` and `/departments` links redirect there
 - Password show/hide eye-icon toggle on Login and the admin staff-creation
   form (`frontend/src/components/PasswordInput.tsx`)
+- Full mobile responsiveness pass: the sidebar collapses into an off-canvas
+  menu behind a hamburger toggle below 768px (`frontend/src/components/Layout.tsx`),
+  every table scrolls within its own container instead of the whole page,
+  forms/KPI grids/dashboard charts reflow to one column, and inputs use a
+  16px font on mobile to avoid iOS Safari's auto-zoom-on-focus
+  (`frontend/src/index.css`)
+- Calendar redesigned with a clean month-grid view (Mon–Sun columns, today
+  highlighted, compact truncating task-title pills per day, prev/next/Today
+  navigation, click a day to see its tasks inline) alongside the existing
+  day/week list views, plus a search + department/status filter bar
+  (`frontend/src/pages/Calendar.tsx`)
+- Campaign chat file attachments (any file type, inline base64 storage, 3MB
+  cap) — see "Attachment storage tradeoff" above

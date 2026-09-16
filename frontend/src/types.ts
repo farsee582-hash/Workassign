@@ -71,7 +71,10 @@ export interface CampaignMessage {
   campaignId: string;
   userId: string;
   user: { id: string; name: string; department: { name: string } | null };
-  text: string;
+  text: string | null;
+  attachmentName: string | null;
+  attachmentType: string | null;
+  attachmentData: string | null;
   createdAt: string;
 }
 
