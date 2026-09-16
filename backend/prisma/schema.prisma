@@ -1,0 +1,180 @@
+// Prisma schema for the Work Management, Campaign & Staff Monitoring System (Phase 1)
+// SQLite is used for zero-dependency local development. Types avoid SQLite-only
+// features (no native enums/arrays) so a switch to Postgres later only requires
+// changing the datasource provider and connection string.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite has no native enum type, so these value sets are enforced in the
+// application layer (see backend/src/lib/enums.ts) as plain String columns.
+// Role: GMA | AGM | COORDINATOR | MANAGER | ASSISTANT_MANAGER | EXECUTIVE | ADMIN
+// UserStatus: ACTIVE | INACTIVE | SUSPENDED
+// CampaignStatus: DRAFT | PLANNED | IN_PROGRESS | UNDER_REVIEW | COMPLETED | CLOSED
+// Priority: LOW | MEDIUM | HIGH | URGENT
+// WorkType: CAMPAIGN | DAILY
+// TaskStatus: NOT_STARTED | ASSIGNED | IN_PROGRESS | ON_HOLD | SUBMITTED | UNDER_REVIEW | REVISION_REQUIRED | APPROVED | COMPLETED | CANCELLED
+// ApprovalStatus: NOT_SUBMITTED | PENDING | APPROVED | REJECTED
+
+model Department {
+  id             String          @id @default(cuid())
+  name           String          @unique
+  description    String?
+  subDepartments SubDepartment[]
+  users          User[]
+  campaigns      CampaignDepartment[]
+  tasks          Task[]
+  createdAt      DateTime        @default(now())
+}
+
+model SubDepartment {
+  id           String     @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  name         String
+  users        User[]
+  tasks        Task[]
+  createdAt    DateTime   @default(now())
+
+  @@unique([departmentId, name])
+}
+
+model User {
+  id                 String     @id @default(cuid())
+  employeeId         String     @unique
+  name               String
+  email              String     @unique
+  mobile             String?
+  departmentId       String?
+  department         Department? @relation(fields: [departmentId], references: [id])
+  subDepartmentId    String?
+  subDepartment      SubDepartment? @relation(fields: [subDepartmentId], references: [id])
+  designation        String?
+  role               String
+  reportingManagerId String?
+  reportingManager   User?      @relation("ManagerReports", fields: [reportingManagerId], references: [id])
+  reports            User[]     @relation("ManagerReports")
+  joiningDate        DateTime?
+  status             String     @default("ACTIVE")
+  username           String     @unique
+  passwordHash       String
+  permissionLevel    Int        @default(1)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  ownedCampaigns     Campaign[]      @relation("CampaignOwner")
+  createdTasks       Task[]          @relation("TaskCreatedBy")
+  assignedTasks      Task[]          @relation("TaskAssignedTo")
+  reviewedTasks       Task[]          @relation("TaskReviewer")
+  comments           TaskComment[]
+  attachments        TaskAttachment[]
+  auditLogs          AuditLog[]
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  code        String         @unique
+  name        String
+  type        String?
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  ownerId     String
+  owner       User           @relation("CampaignOwner", fields: [ownerId], references: [id])
+  priority    String         @default("MEDIUM")
+  budget      Float?
+  status      String         @default("DRAFT")
+  notes       String?
+  departments CampaignDepartment[]
+  tasks       Task[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model CampaignDepartment {
+  campaignId   String
+  campaign     Campaign   @relation(fields: [campaignId], references: [id])
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  @@id([campaignId, departmentId])
+}
+
+model Task {
+  id                String     @id @default(cuid())
+  taskId            String     @unique
+  title             String
+  description       String?
+  workType          String
+  campaignId        String?
+  campaign          Campaign?  @relation(fields: [campaignId], references: [id])
+  departmentId      String
+  department        Department @relation(fields: [departmentId], references: [id])
+  subDepartmentId   String?
+  subDepartment     SubDepartment? @relation(fields: [subDepartmentId], references: [id])
+  assignedToId      String
+  assignedTo        User       @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  createdById       String
+  createdBy         User       @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  reviewerId        String?
+  reviewer          User?      @relation("TaskReviewer", fields: [reviewerId], references: [id])
+  startDate         DateTime
+  dueDate           DateTime
+  priority          String     @default("MEDIUM")
+  status            String     @default("NOT_STARTED")
+  completionPercent Int        @default(0)
+  approvalStatus    String         @default("NOT_SUBMITTED")
+  comments          TaskComment[]
+  attachments       TaskAttachment[]
+  dependsOn         TaskDependency[] @relation("TaskDependsOn")
+  dependents        TaskDependency[] @relation("TaskDependents")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model TaskAttachment {
+  id           String   @id @default(cuid())
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id])
+  fileName     String
+  filePath     String
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model TaskDependency {
+  taskId        String
+  task          Task   @relation("TaskDependsOn", fields: [taskId], references: [id])
+  dependsOnTaskId String
+  dependsOnTask Task   @relation("TaskDependents", fields: [dependsOnTaskId], references: [id])
+
+  @@id([taskId, dependsOnTaskId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  action     String
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id])
+  details    String?
+  createdAt  DateTime @default(now())
+}
