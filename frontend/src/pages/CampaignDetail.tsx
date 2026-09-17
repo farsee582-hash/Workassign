@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Campaign, CampaignDashboard, CampaignMessage, CampaignProgress, Department } from '../types';
+import type { Campaign, CampaignChatRead, CampaignDashboard, CampaignMessage, CampaignProgress, Department } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../auth/AuthContext';
 import AssignWorkForm from '../components/AssignWorkForm';
@@ -83,37 +83,117 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+// Triggers a browser download of an inline base64 data URL without
+// navigating away — used to give image/audio attachments an explicit
+// download affordance alongside their inline player/thumbnail.
+function downloadDataUrl(dataUrl: string, filename: string) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function DownloadIconButton({ onClick, title = 'Download' }: { onClick: () => void; title?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 26,
+        height: 26,
+        borderRadius: '50%',
+        border: 'none',
+        background: 'rgba(0,0,0,0.55)',
+        color: '#fff',
+        cursor: 'pointer',
+        padding: 0,
+      }}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3v12" />
+        <path d="M7 10l5 5 5-5" />
+        <path d="M4 20h16" />
+      </svg>
+    </button>
+  );
+}
+
 function AttachmentPreview({ m }: { m: CampaignMessage }) {
   if (!m.attachmentData) return null;
   const isImage = m.attachmentType?.startsWith('image/');
   const isAudio = m.attachmentType?.startsWith('audio/');
+  const filename = m.attachmentName ?? 'attachment';
   if (isImage) {
     return (
-      <a href={m.attachmentData} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 4 }}>
-        <img
-          src={m.attachmentData}
-          alt={m.attachmentName ?? 'attachment'}
-          style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 6, display: 'block' }}
-        />
-      </a>
+      <div style={{ position: 'relative', display: 'inline-block', marginTop: 4, maxWidth: '100%' }}>
+        <a href={m.attachmentData} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
+          <img
+            src={m.attachmentData}
+            alt={filename}
+            style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 6, display: 'block' }}
+          />
+        </a>
+        <div style={{ position: 'absolute', top: 6, right: 6 }}>
+          <DownloadIconButton onClick={() => downloadDataUrl(m.attachmentData!, filename)} />
+        </div>
+      </div>
     );
   }
   if (isAudio) {
     return (
-      <audio controls src={m.attachmentData} style={{ display: 'block', marginTop: 4, maxWidth: '100%' }}>
-        Your browser does not support audio playback.
-      </audio>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, maxWidth: '100%' }}>
+        <audio controls src={m.attachmentData} style={{ maxWidth: '100%', flex: 1 }}>
+          Your browser does not support audio playback.
+        </audio>
+        <DownloadIconButton
+          onClick={() => downloadDataUrl(m.attachmentData!, filename)}
+        />
+      </div>
     );
   }
   return (
     <a
       href={m.attachmentData}
-      download={m.attachmentName ?? 'attachment'}
+      download={filename}
       style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: 13, wordBreak: 'break-all' }}
     >
-      📎 {m.attachmentName ?? 'Download attachment'}
+      📎 {filename}
     </a>
   );
+}
+
+// Icon-only attach/send controls, matching the app's hand-written inline-SVG
+// icon style (see Layout.tsx / Charts.tsx) rather than emoji labels.
+function AttachIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 18a2 2 0 0 1-3-3l7-7" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 2L11 13" />
+      <path d="M22 2l-7 20-4-9-9-4 20-7Z" />
+    </svg>
+  );
+}
+
+// Short quoted-reply snippet: prefers the text, falls back to the attachment
+// name, so replies to file-only/voice messages still show something.
+function replySnippet(m: { text: string | null; attachmentName: string | null }): string {
+  if (m.text) return m.text.length > 80 ? `${m.text.slice(0, 80)}…` : m.text;
+  if (m.attachmentName) return `📎 ${m.attachmentName}`;
+  return '';
 }
 
 function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () => void }) {
@@ -125,9 +205,13 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [replyTo, setReplyTo] = useState<CampaignMessage | null>(null);
+  const [chatReads, setChatReads] = useState<CampaignChatRead[]>([]);
+  const [infoOpenId, setInfoOpenId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -236,6 +320,14 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
     api.get(`/campaigns/${campaignId}/messages`).then((r) => setMessages(r.data)).catch(() => {});
   }
 
+  function loadChatReads() {
+    api.get(`/campaigns/${campaignId}/chat-read`).then((r) => setChatReads(r.data)).catch(() => {});
+  }
+
+  function markSeen() {
+    api.post(`/campaigns/${campaignId}/chat-read`).then(loadChatReads).catch(() => {});
+  }
+
   function startEdit(m: CampaignMessage) {
     setEditingId(m.id);
     setEditText(m.text ?? '');
@@ -252,10 +344,34 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
     load();
   }
 
+  async function togglePin(messageId: string) {
+    await api.patch(`/campaigns/${campaignId}/messages/${messageId}/pin`);
+    load();
+  }
+
+  function scrollToMessage(id: string) {
+    messageRefs.current[id]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  // "Seen by" for a message: everyone with a chat-read row whose lastSeenAt
+  // is at/after the message's createdAt, excluding the message's own author.
+  // Computed client-side from the read-rows + message list, per task notes.
+  function seenByNames(m: CampaignMessage): string[] {
+    const createdAt = new Date(m.createdAt).getTime();
+    return chatReads
+      .filter((r) => r.userId !== m.userId && new Date(r.lastSeenAt).getTime() >= createdAt)
+      .map((r) => r.user.name);
+  }
+
   useEffect(() => {
     load();
-    const interval = setInterval(load, 4000);
+    markSeen();
+    const interval = setInterval(() => {
+      load();
+      markSeen();
+    }, 4000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaignId]);
 
   useEffect(() => {
@@ -282,6 +398,7 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
     try {
       const payload: Record<string, unknown> = {};
       if (text.trim()) payload.text = text.trim();
+      if (replyTo) payload.replyToId = replyTo.id;
       if (voiceBlob) {
         if (voiceBlob.size > MAX_ATTACHMENT_BYTES) {
           setError(`Voice message too large — max ${MAX_ATTACHMENT_BYTES / (1024 * 1024)}MB. Try a shorter recording.`);
@@ -302,6 +419,7 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       discardVoice();
+      setReplyTo(null);
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to send message.');
@@ -320,15 +438,48 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
           </button>
         )}
       </div>
+      {messages.some((m) => m.pinned) && (
+        <div style={{ marginBottom: 8, padding: '6px 8px', borderRadius: 6, background: '#fff7e0', maxHeight: 90, overflowY: 'auto' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#8a6d1f', marginBottom: 4 }}>📌 Pinned messages</div>
+          {messages.filter((m) => m.pinned).map((m) => (
+            <div
+              key={m.id}
+              onClick={() => scrollToMessage(m.id)}
+              style={{ fontSize: 12, color: '#5c4a13', cursor: 'pointer', padding: '2px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+            >
+              <strong>{m.user.name}:</strong> {replySnippet(m) || '(attachment)'}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
         {messages.map((m) => {
           const isMine = m.userId === user?.id;
+          const seen = seenByNames(m);
           return (
-            <div key={m.id} style={{ background: isMine ? '#eaf1ff' : '#f4f5f7', borderRadius: 6, padding: '6px 8px' }}>
+            <div
+              key={m.id}
+              ref={(el) => { messageRefs.current[m.id] = el; }}
+              style={{ background: isMine ? '#eaf1ff' : '#f4f5f7', borderRadius: 6, padding: '6px 8px', position: 'relative' }}
+            >
+              {m.pinned && (
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#8a6d1f', marginBottom: 2 }}>📌 Pinned</div>
+              )}
               <div style={{ fontSize: 12, color: '#666', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <span><strong>{m.user.name}</strong>{m.user.department ? ` · ${m.user.department.name}` : ''}</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
+                  <button
+                    type="button"
+                    className="chat-msg-action"
+                    title="Message info"
+                    onClick={() => setInfoOpenId(infoOpenId === m.id ? null : m.id)}
+                  >
+                    {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ⓘ
+                  </button>
+                  {editingId !== m.id && (
+                    <button type="button" className="chat-msg-action" title="Reply" onClick={() => setReplyTo(m)}>↩</button>
+                  )}
+                  <button type="button" className="chat-msg-action" title={m.pinned ? 'Unpin' : 'Pin'} onClick={() => togglePin(m.id)}>📌</button>
                   {isMine && editingId !== m.id && (
                     <>
                       {m.text && (
@@ -337,8 +488,38 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
                       <button type="button" className="chat-msg-action" title="Delete" onClick={() => deleteMessage(m.id)}>🗑</button>
                     </>
                   )}
+                  {infoOpenId === m.id && (
+                    <div
+                      className="glass dash-notif-panel"
+                      style={{ top: 24, right: 0, width: 200, maxHeight: 160, textAlign: 'left', fontWeight: 400 }}
+                    >
+                      <div className="dash-notif-panel-title">Message info</div>
+                      <div style={{ fontSize: 12, marginBottom: 6 }}>{new Date(m.createdAt).toLocaleString()}</div>
+                      <div style={{ fontSize: 12 }}>
+                        {seen.length > 0 ? `Seen by: ${seen.join(', ')}` : 'Not seen yet'}
+                      </div>
+                    </div>
+                  )}
                 </span>
               </div>
+              {m.replyTo && (
+                <div
+                  onClick={() => scrollToMessage(m.replyTo!.id)}
+                  style={{
+                    fontSize: 12,
+                    color: '#555',
+                    background: 'rgba(0,0,0,0.05)',
+                    borderLeft: '3px solid #c1a75a',
+                    borderRadius: 4,
+                    padding: '3px 6px',
+                    marginTop: 4,
+                    marginBottom: 2,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <strong>{m.replyTo.user.name}</strong>: {replySnippet(m.replyTo)}
+                </div>
+              )}
               {editingId === m.id ? (
                 <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
                   <input
@@ -361,6 +542,32 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
         <div ref={bottomRef} />
       </div>
       {error && <div className="error-text" style={{ marginTop: 6 }}>{error}</div>}
+      {replyTo && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginTop: 6,
+            padding: '6px 8px',
+            borderRadius: 6,
+            background: '#f4f5f7',
+            borderLeft: '3px solid #c1a75a',
+          }}
+        >
+          <div style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            Replying to <strong>{replyTo.user.name}</strong>: {replySnippet(replyTo)}
+          </div>
+          <button
+            type="button"
+            className="chat-msg-action"
+            title="Cancel reply"
+            onClick={() => setReplyTo(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {file && (
         <div style={{ fontSize: 12, color: '#666', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
           📎 {file.name}
@@ -469,10 +676,11 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
         <label
           htmlFor={`chat-file-${campaignId}`}
           className="btn secondary small"
-          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', opacity: isRecording ? 0.5 : 1, pointerEvents: isRecording ? 'none' : 'auto' }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: isRecording ? 0.5 : 1, pointerEvents: isRecording ? 'none' : 'auto', minWidth: 40, minHeight: 40 }}
           title="Attach a file"
+          aria-label="Attach a file"
         >
-          📎
+          <AttachIcon />
         </label>
         <button
           type="button"
@@ -484,7 +692,15 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
         >
           🎙️
         </button>
-        <button className="btn small" disabled={sending || isRecording}>Send</button>
+        <button
+          className="btn small"
+          disabled={sending || isRecording}
+          title="Send"
+          aria-label="Send"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 40, minHeight: 40 }}
+        >
+          <SendIcon />
+        </button>
       </form>
       <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
     </div>

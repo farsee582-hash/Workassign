@@ -79,6 +79,7 @@ model User {
   auditLogs          AuditLog[]
   campaignMessages    CampaignMessage[]
   campaignAccess      CampaignAccess[]
+  campaignChatReads   CampaignChatRead[]
   recurringTemplatesCreated RecurringWorkTemplate[] @relation("RecurringCreatedBy")
   recurringTemplatesAssigned RecurringWorkTemplate[] @relation("RecurringAssignedTo")
 }
@@ -101,6 +102,7 @@ model Campaign {
   tasks           Task[]
   messages        CampaignMessage[]
   access          CampaignAccess[]
+  chatReads       CampaignChatRead[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }
@@ -148,6 +150,28 @@ model CampaignMessage {
   attachmentType String?
   attachmentData String?  @db.Text
   createdAt  DateTime @default(now())
+  // Reply-to-message (nullable self-relation — no backfill needed, safe on
+  // a live table with existing rows; see README "Schema safety").
+  replyToId  String?
+  replyTo    CampaignMessage?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies    CampaignMessage[] @relation("MessageReplies")
+  // Pin flag — has a default, no backfill needed.
+  pinned     Boolean  @default(false)
+}
+
+// "Seen by" tracking for campaign chat, kept lightweight: one row per
+// (campaign, user) holding only the last time that user had the chat open,
+// rather than a per-message-per-user read table. "Seen by" for any message
+// is then computed client-side as: users whose lastSeenAt >= message.createdAt.
+model CampaignChatRead {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  lastSeenAt DateTime @default(now())
+
+  @@unique([campaignId, userId])
 }
 
 // A recurring template that "generates" today's Task occurrence on demand

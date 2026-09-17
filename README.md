@@ -482,3 +482,68 @@ reference screenshot, pure frontend/CSS, no schema or API changes:
   unchecked, matching `requireRoles('ADMIN', 'GMA')` on the users/departments
   write routes), while campaign/task/report actions follow the
   `WORK_ASSIGNERS` group (GMA, AGM, Coordinator, Manager).
+
+## Campaign chat: reply, message info, pin, downloads (this update)
+
+Five additions to the existing campaign chat feature, built on the same
+patterns as the earlier edit/delete work (base64 inline attachments,
+`requireCampaignAccess()` gating on every route).
+
+- **Reply to a message** — any campaign-chat participant (not just the
+  message owner) can reply to any message. `POST /campaigns/:id/messages`
+  accepts an optional `replyToId`, validated to belong to the same campaign,
+  and both the list (`GET .../messages`) and the create response include a
+  `replyTo: { id, text, attachmentName, user: { name } }` snippet so the
+  quoted preview renders with no extra request. The composer shows a
+  cancelable quoted-reply preview above the input; each reply renders a
+  small quoted block (sender + truncated snippet) above its own content,
+  clickable to scroll to the original.
+- **Message info (date + seen by)** — a new lightweight `CampaignChatRead`
+  model (`{ campaignId, userId, lastSeenAt }`, unique per campaign+user)
+  replaces a heavy per-message-per-user read table. The frontend upserts its
+  own `lastSeenAt` via `POST /campaigns/:id/chat-read` on chat load and on
+  every existing 4s poll tick; `GET /campaigns/:id/chat-read` returns all
+  read rows (with user names) for the campaign. "Seen by" for any message is
+  then computed client-side as: every read row with `lastSeenAt >=` that
+  message's `createdAt`, excluding the message's own author — no backend
+  per-message computation. Clicking the timestamp/ⓘ on a message opens a
+  small popover (styled like the existing `.dash-notif-panel`) with the full
+  date+time and the seen-by list.
+- **Pin a message** — `pinned Boolean @default(false)` on `CampaignMessage`,
+  toggled via `PATCH /campaigns/:id/messages/:messageId/pin`. Kept open to
+  anyone with chat access (same gate as sending a message) rather than
+  restricted to the campaign-management role set used for campaign-level
+  actions like `PUT /:id/access` — pinning a chat message is low-stakes and
+  reversible by anyone in the same chat, unlike changing who can see the
+  campaign. Pinned messages show a "📌 Pinned" label inline and are listed in
+  a compact strip above the scrolling message list (click an entry to scroll
+  to it).
+- **Explicit download button on every attachment type** — image and audio
+  attachments now also get a small download icon (image: overlaid on the
+  thumbnail; audio: next to the player) that triggers a browser download of
+  the existing base64 `attachmentData`, matching the affordance generic
+  files already had. No backend change.
+- **Icon-only attach/send controls** — the 📎 emoji label and literal "Send"
+  text button were replaced with small hand-written inline SVG icons
+  (paperclip, paper-plane), matching the icon style already used in
+  `Layout.tsx`/`Charts.tsx`, with `aria-label`/`title` kept for
+  accessibility.
+
+**Schema safety** (see "recent incident" note on `prisma db push
+--accept-data-loss` with no migration history — every new required column
+must be nullable or safely defaulted):
+- `CampaignMessage.replyToId String?` — nullable self-relation FK, no
+  default needed since it's optional.
+- `CampaignMessage.pinned Boolean @default(false)` — has a default Prisma
+  can apply to existing rows with no backfill.
+- `CampaignChatRead` — an entirely new table; new tables need no backfill
+  regardless of their own columns being required, since there are no
+  existing rows to violate a NOT NULL constraint.
+
+### Further chat improvements considered but not built (suggestions)
+
+@mentions with notification, emoji reactions, typing indicators, an
+unread-message divider with scroll-to-unread on open, multi-file attach in
+a single message, in-chat search, per-campaign chat muting, message
+forwarding between campaigns, link previews for pasted URLs, and a chat
+export/transcript download (PDF or plain text).

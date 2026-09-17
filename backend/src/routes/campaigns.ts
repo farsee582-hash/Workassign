@@ -190,13 +190,37 @@ router.put('/:id/access', requireRoles('ADMIN', 'GMA', 'AGM', 'MANAGER', 'COORDI
 
 // --- Chat (item 1) --------------------------------------------------------
 
+const messageInclude = {
+  user: { select: { id: true, name: true, department: { select: { name: true } } } },
+  replyTo: { select: { id: true, text: true, attachmentName: true, user: { select: { name: true } } } },
+};
+
 router.get('/:id/messages', requireCampaignAccess(), async (req, res) => {
   const messages = await prisma.campaignMessage.findMany({
     where: { campaignId: req.params.id },
-    include: { user: { select: { id: true, name: true, department: { select: { name: true } } } } },
+    include: messageInclude,
     orderBy: { createdAt: 'asc' },
   });
   res.json(messages);
+});
+
+// --- Chat "seen by" tracking ----------------------------------------------
+
+router.get('/:id/chat-read', requireCampaignAccess(), async (req, res) => {
+  const reads = await prisma.campaignChatRead.findMany({
+    where: { campaignId: req.params.id },
+    include: { user: { select: { id: true, name: true } } },
+  });
+  res.json(reads);
+});
+
+router.post('/:id/chat-read', requireCampaignAccess(), async (req, res) => {
+  const read = await prisma.campaignChatRead.upsert({
+    where: { campaignId_userId: { campaignId: req.params.id, userId: req.user!.id } },
+    create: { campaignId: req.params.id, userId: req.user!.id, lastSeenAt: new Date() },
+    update: { lastSeenAt: new Date() },
+  });
+  res.json(read);
 });
 
 // Data URLs are stored inline on the row (see README "Attachment storage
@@ -207,7 +231,7 @@ router.get('/:id/messages', requireCampaignAccess(), async (req, res) => {
 const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024; // 3MB of raw file bytes
 
 router.post('/:id/messages', requireCampaignAccess(), async (req, res) => {
-  const { text, attachmentName, attachmentType, attachmentData } = req.body;
+  const { text, attachmentName, attachmentType, attachmentData, replyToId } = req.body;
   const trimmedText = text && String(text).trim() ? String(text).trim() : null;
   const hasAttachment = !!attachmentData;
 
@@ -228,6 +252,15 @@ router.post('/:id/messages', requireCampaignAccess(), async (req, res) => {
     }
   }
 
+  let replyToIdToUse: string | null = null;
+  if (replyToId) {
+    const replyTarget = await prisma.campaignMessage.findUnique({ where: { id: String(replyToId) } });
+    if (!replyTarget || replyTarget.campaignId !== req.params.id) {
+      return res.status(400).json({ error: 'replyToId must reference a message in this campaign' });
+    }
+    replyToIdToUse = replyTarget.id;
+  }
+
   const message = await prisma.campaignMessage.create({
     data: {
       campaignId: req.params.id,
@@ -236,8 +269,9 @@ router.post('/:id/messages', requireCampaignAccess(), async (req, res) => {
       attachmentName: hasAttachment ? String(attachmentName) : null,
       attachmentType: hasAttachment ? String(attachmentType) : null,
       attachmentData: hasAttachment ? String(attachmentData) : null,
+      replyToId: replyToIdToUse,
     },
-    include: { user: { select: { id: true, name: true, department: { select: { name: true } } } } },
+    include: messageInclude,
   });
   res.status(201).json(message);
 });
@@ -253,7 +287,7 @@ router.patch('/:id/messages/:messageId', requireCampaignAccess(), async (req, re
   const message = await prisma.campaignMessage.update({
     where: { id: req.params.messageId },
     data: { text: trimmedText },
-    include: { user: { select: { id: true, name: true, department: { select: { name: true } } } } },
+    include: messageInclude,
   });
   res.json(message);
 });
@@ -264,6 +298,21 @@ router.delete('/:id/messages/:messageId', requireCampaignAccess(), async (req, r
   if (existing.userId !== req.user!.id) return res.status(403).json({ error: 'You can only delete your own messages' });
   await prisma.campaignMessage.delete({ where: { id: req.params.messageId } });
   res.status(204).send();
+});
+
+// Pinning is a low-stakes chat action, kept open to anyone with chat access
+// (same gate as sending messages) rather than restricted to the
+// campaign-management role set used for campaign-level actions like
+// PUT /:id/access — see task notes.
+router.patch('/:id/messages/:messageId/pin', requireCampaignAccess(), async (req, res) => {
+  const existing = await prisma.campaignMessage.findUnique({ where: { id: req.params.messageId } });
+  if (!existing || existing.campaignId !== req.params.id) return res.status(404).json({ error: 'Message not found' });
+  const message = await prisma.campaignMessage.update({
+    where: { id: req.params.messageId },
+    data: { pinned: !existing.pinned },
+    include: messageInclude,
+  });
+  res.json(message);
 });
 
 // Department-wise completion is auto-calculated from task status/completionPercent,

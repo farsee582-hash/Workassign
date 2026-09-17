@@ -79,6 +79,17 @@ export interface CampaignMessage {
   attachmentType: string | null;
   attachmentData: string | null;
   createdAt: string;
+  replyToId: string | null;
+  replyTo: { id: string; text: string | null; attachmentName: string | null; user: { name: string } } | null;
+  pinned: boolean;
+}
+
+export interface CampaignChatRead {
+  id: string;
+  campaignId: string;
+  userId: string;
+  user: { id: string; name: string };
+  lastSeenAt: string;
 }
 
 export interface RecurringWorkTemplate {
