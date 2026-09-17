@@ -246,6 +246,24 @@ input:focus, select:focus, textarea:focus {
   margin: 0;
   color: var(--color-charcoal);
   letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mobile-topbar h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logomark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-charcoal);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 .sidebar nav {
   display: grid;
@@ -255,20 +273,23 @@ input:focus, select:focus, textarea:focus {
 .sidebar nav a {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 12px 12px;
+  gap: 6px;
+  padding: 16px 10px;
   border-radius: var(--radius-md);
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
+  text-align: center;
   background: var(--color-surface-alt);
-  min-height: 56px;
+  min-height: 76px;
   text-decoration: none;
   transition: background-color .12s ease, color .12s ease;
 }
-.sidebar nav a .nav-icon { font-size: 16px; line-height: 1; }
+.sidebar nav a:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.sidebar nav a .nav-icon { line-height: 1; display: flex; align-items: center; justify-content: center; }
+.sidebar nav a .nav-label { line-height: 1.2; }
 .sidebar nav a.active, .sidebar nav a:hover {
   background: var(--color-charcoal);
   color: #fff;

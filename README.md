@@ -436,3 +436,29 @@ plus a reusable `.glass` utility class (translucent white + `backdrop-filter:
 blur()` + soft border) applied only to the header's gauge card, date-range
 select, and notifications button/panel — the rest of the app keeps its
 existing solid-white rounded-card system unchanged.
+
+### Visual refinement pass: sidebar tiles, KPI icons, gauge, logomark
+
+A follow-up pass closed four remaining gaps against the "Homies Lab"
+reference screenshot, pure frontend/CSS, no schema or API changes:
+
+- **Sidebar nav tiles** (`Layout.tsx`, `index.css`): rebuilt as square
+  icon-above-label tiles in the existing 2-column grid, with hand-written
+  inline thin-stroke SVG icons (no icon library) replacing the previous
+  emoji/unicode glyphs — active tile stays solid charcoal with a white
+  icon+label, inactive tiles are light. The existing mobile hamburger
+  collapse/overlay behavior is unchanged.
+- **KPI card icon chips** (`Dashboard.tsx`): every `.kpi-card` (both "My
+  Dashboard" and "Management Overview" sets) now shows a small rounded
+  soft-tinted icon chip above the number, with the icon chosen per stat's
+  meaning (checklist, clock, progress, calendar, alert, check, flag,
+  megaphone) and tint colors varied slightly per card for visual interest.
+- **Gauge chart** (`Charts.tsx`, `GaugeChart`): thicker arc, a warm amber
+  gradient fill (`<linearGradient>`, dark→light), small tick number labels
+  at 0/20/40/60/80/100 around the arc, and a circular handle dot marking
+  the end of the filled arc. New `min`/`max`/`showTicks` props are optional
+  with defaults, so existing call sites (`Dashboard.tsx`) work unchanged.
+- **Sidebar logomark**: a small circular charcoal badge with a minimal
+  checkmark-style SVG mark now sits immediately before the "WorkAssign"
+  text in both the desktop sidebar header and the mobile top bar
+  (pure CSS/inline SVG, no image asset).

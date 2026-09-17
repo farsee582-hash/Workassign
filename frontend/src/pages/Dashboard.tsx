@@ -9,6 +9,44 @@ import { Link } from 'react-router-dom';
 const managementRoles = ['GMA', 'AGM', 'ADMIN', 'MANAGER', 'COORDINATOR'];
 const ROLES = ['GMA', 'AGM', 'COORDINATOR', 'MANAGER', 'ASSISTANT_MANAGER', 'EXECUTIVE'];
 
+const kpiTints = ['#fdf1cf', '#e6f2ea', '#e8eefb', '#fbe7e2', '#f2ecfb', '#fdf1cf'];
+
+function KpiIcon({ kind }: { kind: 'list' | 'clock' | 'progress' | 'calendar' | 'alert' | 'check' | 'flag' | 'megaphone' }) {
+  const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  switch (kind) {
+    case 'list':
+      return <svg {...common}><path d="M8 6h13M8 12h13M8 18h13" /><circle cx="3.5" cy="6" r="1.2" fill="currentColor" stroke="none" /><circle cx="3.5" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="3.5" cy="18" r="1.2" fill="currentColor" stroke="none" /></svg>;
+    case 'clock':
+      return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg>;
+    case 'progress':
+      return <svg {...common}><path d="M4 20V10M12 20V4M20 20v-7" /></svg>;
+    case 'calendar':
+      return <svg {...common}><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>;
+    case 'alert':
+      return <svg {...common}><path d="M12 3l10 18H2L12 3Z" /><path d="M12 10v4M12 17.5v.01" /></svg>;
+    case 'check':
+      return <svg {...common}><rect x="3" y="3" width="18" height="18" rx="4" /><path d="M7.5 12.5l3 3 6-6" /></svg>;
+    case 'flag':
+      return <svg {...common}><path d="M5 21V4" /><path d="M5 4h13l-3 4 3 4H5" /></svg>;
+    case 'megaphone':
+      return <svg {...common}><path d="M3 10v4a1 1 0 0 0 1 1h2l5 4V5L6 9H4a1 1 0 0 0-1 1Z" /><path d="M16 8a4 4 0 0 1 0 8" /></svg>;
+    default:
+      return null;
+  }
+}
+
+function Kpi({ value, label, icon, tint }: { value: number | string; label: string; icon: Parameters<typeof KpiIcon>[0]['kind']; tint: string }) {
+  return (
+    <div className="kpi-card">
+      <div className="icon-chip" style={{ background: tint }}>
+        <KpiIcon kind={icon} />
+      </div>
+      <div className="value">{value}</div>
+      <div className="label">{label}</div>
+    </div>
+  );
+}
+
 function TaskRow({ task }: { task: Task }) {
   return (
     <tr>
@@ -149,13 +187,13 @@ export default function Dashboard() {
       </div>
       {my && (
         <div className="kpi-grid">
-          <div className="kpi-card"><div className="value">{my.counts.total}</div><div className="label">Total tasks</div></div>
-          <div className="kpi-card"><div className="value">{my.counts.pending}</div><div className="label">Pending</div></div>
-          <div className="kpi-card"><div className="value">{my.counts.inProgress}</div><div className="label">In progress</div></div>
-          <div className="kpi-card"><div className="value">{my.counts.dueToday}</div><div className="label">Due today</div></div>
-          <div className="kpi-card"><div className="value">{my.counts.dueTomorrow}</div><div className="label">Due tomorrow</div></div>
-          <div className="kpi-card"><div className="value">{my.counts.overdue}</div><div className="label">Overdue</div></div>
-          <div className="kpi-card"><div className="value">{my.counts.completed}</div><div className="label">Completed</div></div>
+          <Kpi value={my.counts.total} label="Total tasks" icon="list" tint={kpiTints[0]} />
+          <Kpi value={my.counts.pending} label="Pending" icon="clock" tint={kpiTints[1]} />
+          <Kpi value={my.counts.inProgress} label="In progress" icon="progress" tint={kpiTints[2]} />
+          <Kpi value={my.counts.dueToday} label="Due today" icon="calendar" tint={kpiTints[3]} />
+          <Kpi value={my.counts.dueTomorrow} label="Due tomorrow" icon="calendar" tint={kpiTints[4]} />
+          <Kpi value={my.counts.overdue} label="Overdue" icon="alert" tint={kpiTints[5]} />
+          <Kpi value={my.counts.completed} label="Completed" icon="check" tint={kpiTints[1]} />
         </div>
       )}
 
@@ -203,12 +241,12 @@ export default function Dashboard() {
           {mgmt && (
             <>
               <div className="kpi-grid">
-                <div className="kpi-card"><div className="value">{mgmt.campaigns.total}</div><div className="label">Total campaigns</div></div>
-                <div className="kpi-card"><div className="value">{mgmt.campaigns.active}</div><div className="label">Active campaigns</div></div>
-                <div className="kpi-card"><div className="value">{mgmt.campaigns.completed}</div><div className="label">Completed campaigns</div></div>
-                <div className="kpi-card"><div className="value">{mgmt.tasks.total}</div><div className="label">Total tasks</div></div>
-                <div className="kpi-card"><div className="value">{mgmt.tasks.pending}</div><div className="label">Pending tasks</div></div>
-                <div className="kpi-card"><div className="value">{mgmt.tasks.overdue}</div><div className="label">Overdue tasks</div></div>
+                <Kpi value={mgmt.campaigns.total} label="Total campaigns" icon="megaphone" tint={kpiTints[0]} />
+                <Kpi value={mgmt.campaigns.active} label="Active campaigns" icon="flag" tint={kpiTints[2]} />
+                <Kpi value={mgmt.campaigns.completed} label="Completed campaigns" icon="check" tint={kpiTints[1]} />
+                <Kpi value={mgmt.tasks.total} label="Total tasks" icon="list" tint={kpiTints[4]} />
+                <Kpi value={mgmt.tasks.pending} label="Pending tasks" icon="clock" tint={kpiTints[1]} />
+                <Kpi value={mgmt.tasks.overdue} label="Overdue tasks" icon="alert" tint={kpiTints[5]} />
               </div>
 
               <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(260px, 1fr)', gap: 16, marginTop: 8 }}>

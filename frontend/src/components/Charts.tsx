@@ -66,35 +66,90 @@ export function BarChart({ data }: { data: { label: string; value: number; color
 }
 
 /** Dependency-free semicircular gauge for a single 0-100 hero metric. */
-export function GaugeChart({ percent, size = 160, label }: { percent: number; size?: number; color?: string; label?: string }) {
-  const p = Math.max(0, Math.min(100, percent));
+export function GaugeChart({
+  percent,
+  size = 160,
+  label,
+  min = 0,
+  max = 100,
+  showTicks = true,
+}: {
+  percent: number;
+  size?: number;
+  color?: string;
+  label?: string;
+  min?: number;
+  max?: number;
+  showTicks?: boolean;
+}) {
+  const p = Math.max(min, Math.min(max, percent));
+  const frac = (p - min) / (max - min || 1);
   const r = size / 2;
-  const stroke = size * 0.16;
+  const stroke = size * 0.2;
   const radius = r - stroke / 2;
   const circumference = Math.PI * radius; // half circle
-  const filled = (p / 100) * circumference;
+  const filled = frac * circumference;
+  const pad = size * 0.14; // extra room for tick labels around the arc
+  const cx = r + pad;
+  const cy = r + stroke / 2;
+  const svgW = size + pad * 2;
+  const svgH = r + stroke / 2 + pad * 0.6;
+  const gaugeId = `gauge-grad-${size}-${label ?? 'x'}`.replace(/\s+/g, '');
+
+  // Angle of the arc runs from 180deg (left) to 0deg (right) along the top half.
+  const angleFor = (f: number) => Math.PI - f * Math.PI;
+  const pointAt = (f: number, rad: number) => {
+    const a = angleFor(f);
+    return { x: cx + rad * Math.cos(a), y: cy - rad * Math.sin(a) };
+  };
+  const handle = pointAt(frac, radius);
+  const ticks = showTicks ? [0, 0.2, 0.4, 0.6, 0.8, 1] : [];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <svg width={size} height={size / 2 + stroke} viewBox={`0 0 ${size} ${size / 2 + stroke}`}>
-        <g transform={`translate(0, ${stroke / 2})`}>
-          <path
-            d={`M ${stroke / 2} ${r} A ${radius} ${radius} 0 0 1 ${size - stroke / 2} ${r}`}
-            fill="none"
-            stroke="#f2ead9"
-            strokeWidth={stroke}
-            strokeLinecap="round"
-          />
-          <path
-            d={`M ${stroke / 2} ${r} A ${radius} ${radius} 0 0 1 ${size - stroke / 2} ${r}`}
-            fill="none"
-            stroke="#e8b923"
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={`${filled} ${circumference - filled}`}
-          />
-        </g>
+      <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
+        <defs>
+          <linearGradient id={gaugeId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#c99a13" />
+            <stop offset="55%" stopColor="#e8b923" />
+            <stop offset="100%" stopColor="#f6d271" />
+          </linearGradient>
+        </defs>
+        <path
+          d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
+          fill="none"
+          stroke="#f2ead9"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+        />
+        <path
+          d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
+          fill="none"
+          stroke={`url(#${gaugeId})`}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${filled} ${circumference - filled}`}
+        />
+        {ticks.map((t) => {
+          const tp = pointAt(t, radius + stroke * 0.72);
+          return (
+            <text
+              key={t}
+              x={tp.x}
+              y={tp.y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={size * 0.075}
+              fontWeight={600}
+              fill="#a99e88"
+            >
+              {Math.round(min + t * (max - min))}
+            </text>
+          );
+        })}
+        <circle cx={handle.x} cy={handle.y} r={stroke * 0.42} fill="#fff" stroke="#e8b923" strokeWidth={size * 0.02} style={{ filter: 'drop-shadow(0 2px 4px rgba(66,58,47,0.35))' }} />
       </svg>
-      <div style={{ marginTop: -size * 0.28, fontSize: size * 0.22, fontWeight: 800, color: '#241f18' }}>{Math.round(p)}%</div>
+      <div style={{ marginTop: -svgH * 0.42, fontSize: size * 0.26, fontWeight: 800, color: '#241f18' }}>{Math.round(frac * 100)}%</div>
       {label && <div style={{ fontSize: 12, color: '#746a5c', fontWeight: 600, marginTop: 4 }}>{label}</div>}
     </div>
   );
