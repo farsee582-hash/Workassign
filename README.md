@@ -407,3 +407,32 @@ way. No schema changes were needed or made.
   specifically — the primitives (`GaugeChart`, `LineChart`, `.stat-chip`,
   `.card-header`, `.search-box` CSS) now exist in `Charts.tsx`/`index.css`
   for that follow-up to use.
+
+### Dashboard header refinement: greeting, gauge, gradient + glass
+
+`frontend/src/pages/Dashboard.tsx` gained a dedicated header row above the
+existing KPI grid/charts/tables (all of which are unchanged):
+
+- **Left:** a small "Home / Dashboard" breadcrumb, a large bold time-of-day
+  greeting ("Good morning/afternoon/evening, {first name}" from `useAuth()`,
+  based on `new Date().getHours()`), and a muted subtitle with today's full
+  date.
+- **Right:** a hero `GaugeChart` (reused from `Charts.tsx`) showing the
+  overall completion percentage, computed client-side from existing counts
+  (`mgmt.tasks.completed / mgmt.tasks.total` for managers, otherwise
+  `my.counts.completed / my.counts.total`) — no new backend fields. Next to
+  it, the management dashboard's date-range selector was moved up into the
+  header (department/role filters and the custom-date inputs remain below,
+  unchanged), plus a bell-icon notifications button with a count badge and a
+  dropdown panel listing overdue/due-today tasks, derived client-side from
+  the already-loaded `/dashboard/me` data — no new notifications backend.
+- Responsive: at the existing 768px breakpoint the header stacks
+  (greeting block above the gauge/controls block) instead of overflowing.
+
+**Gradient + glass:** `index.css` adds `--gradient-page` (very subtle, used
+on `body`) and `--gradient-hero` (warmer, used on the dashboard header
+background) CSS custom properties within the existing cream/amber palette,
+plus a reusable `.glass` utility class (translucent white + `backdrop-filter:
+blur()` + soft border) applied only to the header's gauge card, date-range
+select, and notifications button/panel — the rest of the app keeps its
+existing solid-white rounded-card system unchanged.

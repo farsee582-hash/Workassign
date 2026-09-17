@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import type { Department, ManagementDashboard, MyDashboard, Task } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
-import { BarChart, DonutChart } from '../components/Charts';
+import { BarChart, DonutChart, GaugeChart } from '../components/Charts';
 import { Link } from 'react-router-dom';
 
 const managementRoles = ['GMA', 'AGM', 'ADMIN', 'MANAGER', 'COORDINATOR'];
@@ -24,6 +24,12 @@ function TaskRow({ task }: { task: Task }) {
   );
 }
 
+function greetingForHour(hour: number) {
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [my, setMy] = useState<MyDashboard | null>(null);
@@ -34,6 +40,16 @@ export default function Dashboard() {
   const [role, setRole] = useState('');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const firstName = (user?.name ?? '').split(' ')[0] || 'there';
+  const greeting = greetingForHour(new Date().getHours());
+  const todayLabel = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
   useEffect(() => {
     api.get('/dashboard/me').then((r) => setMy(r.data));
@@ -56,8 +72,78 @@ export default function Dashboard() {
 
   const isManager = user && managementRoles.includes(user.role);
 
+  const overallPercent = useMemo(() => {
+    if (isManager && mgmt) {
+      return mgmt.tasks.total > 0 ? (mgmt.tasks.completed / mgmt.tasks.total) * 100 : 0;
+    }
+    if (my) {
+      return my.counts.total > 0 ? (my.counts.completed / my.counts.total) * 100 : 0;
+    }
+    return 0;
+  }, [isManager, mgmt, my]);
+
+  const notifications = useMemo(() => {
+    const items: { id: string; text: string; kind: 'overdue' | 'due-today' }[] = [];
+    if (my) {
+      my.overdueTasks.forEach((t) => items.push({ id: `od-${t.id}`, text: `Overdue: ${t.title}`, kind: 'overdue' }));
+      my.dueToday.forEach((t) => items.push({ id: `dt-${t.id}`, text: `Due today: ${t.title}`, kind: 'due-today' }));
+    }
+    return items;
+  }, [my]);
+
   return (
     <div>
+      <div className="dash-header glass">
+        <div className="dash-header-left">
+          <div className="dash-breadcrumb">Home / Dashboard</div>
+          <h1 className="dash-greeting">{greeting}, {firstName}</h1>
+          <div className="dash-subtitle">It&rsquo;s {todayLabel}</div>
+        </div>
+        <div className="dash-header-right">
+          <div className="dash-header-controls">
+            {isManager && (
+              <select className="glass dash-range-select" value={range} onChange={(e) => setRange(e.target.value)} aria-label="Date range">
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="custom">Custom</option>
+              </select>
+            )}
+            <div className="dash-notif-wrap">
+              <button
+                type="button"
+                className="glass dash-notif-btn"
+                aria-label="Notifications"
+                onClick={() => setNotifOpen((v) => !v)}
+              >
+                <span aria-hidden="true">🔔</span>
+                {notifications.length > 0 && <span className="dash-notif-badge">{notifications.length}</span>}
+              </button>
+              {notifOpen && (
+                <div className="glass dash-notif-panel">
+                  <div className="dash-notif-panel-title">Notifications</div>
+                  {notifications.length === 0 && <div className="dash-notif-empty">You&rsquo;re all caught up.</div>}
+                  {notifications.slice(0, 8).map((n) => (
+                    <div key={n.id} className={`dash-notif-item ${n.kind}`}>{n.text}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="glass dash-gauge-card">
+            <GaugeChart percent={overallPercent} size={140} label="Overall completion" />
+          </div>
+        </div>
+      </div>
+
+      {isManager && range === 'custom' && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+          <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+        </div>
+      )}
+
       <div className="section-title">
         <h2>My Dashboard</h2>
       </div>
@@ -104,19 +190,6 @@ export default function Dashboard() {
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-            <select value={range} onChange={(e) => setRange(e.target.value)}>
-              <option value="all">All time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="custom">Custom</option>
-            </select>
-            {range === 'custom' && (
-              <>
-                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
-                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
-              </>
-            )}
             <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
               <option value="">All departments</option>
               {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
