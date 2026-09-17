@@ -9,10 +9,10 @@ import AssignWorkForm from '../components/AssignWorkForm';
 import { BarChart, DonutChart } from '../components/Charts';
 
 const PRIORITY_COLORS: Record<string, string> = {
-  LOW: '#3b6ef6',
-  MEDIUM: '#e0a326',
-  HIGH: '#e0854b',
-  URGENT: '#e0473b',
+  LOW: '#1d4ed8',
+  MEDIUM: '#a5690f',
+  HIGH: '#c1622b',
+  URGENT: '#c0392b',
 };
 
 const canManage = ['ADMIN', 'GMA', 'AGM', 'MANAGER', 'COORDINATOR'];
@@ -511,9 +511,9 @@ export default function CampaignDetail() {
                 <div style={{ marginTop: 10 }}>
                   <DonutChart
                     data={[
-                      { label: 'Completed', value: dashboard.kpis.completed, color: '#22a06b' },
-                      { label: 'Pending', value: dashboard.kpis.pending - dashboard.kpis.overdue, color: '#3b6ef6' },
-                      { label: 'Overdue', value: dashboard.kpis.overdue, color: '#e0473b' },
+                      { label: 'Completed', value: dashboard.kpis.completed, color: '#1e7a4c' },
+                      { label: 'Pending', value: dashboard.kpis.pending - dashboard.kpis.overdue, color: '#1d4ed8' },
+                      { label: 'Overdue', value: dashboard.kpis.overdue, color: '#c0392b' },
                     ]}
                   />
                 </div>

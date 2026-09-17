@@ -292,3 +292,32 @@ without any other code changes.
   same `BarChart`/`DonutChart`/`.kpi-grid`/`.charts-grid` components/styles as
   the management dashboard — no new schema fields or charting library). The
   existing per-department task table stays below it unchanged.
+- Modernist/Swiss-style visual redesign of the frontend (pure CSS, no new
+  dependencies, no functional changes). All colors, type sizes, spacing and
+  border radii are now driven by CSS custom properties defined at the top of
+  `frontend/src/index.css`:
+  - **Neutral scale**: `--color-bg #f6f6f3`, `--color-surface #ffffff`,
+    `--color-surface-alt #f0f0ec`, `--color-border #dcdcd5`,
+    `--color-border-strong #b8b8ad`, `--color-text #14141a`,
+    `--color-text-muted #63636b`, `--color-text-faint #8d8d92`.
+  - **Accents** (small, restrained set): `--color-primary #1d4ed8` (blue,
+    primary actions/links), `--color-danger #c0392b` (overdue/errors),
+    `--color-warn #a5690f` (in-progress/warning), `--color-success #1e7a4c`
+    (completed), each with a pale `-tint` variant for badge/status
+    backgrounds.
+  - **Type scale**: `--fs-xs 0.72rem` … `--fs-2xl 2rem`, with headings bold
+    and tightly tracked for a stronger hierarchy.
+  - **Spacing scale**: `--sp-1 4px` through `--sp-7 48px`, used consistently
+    for padding/margins/gaps instead of ad-hoc pixel values.
+  - **Radius scale**: `--radius-sm 3px`, `--radius-md 5px`, `--radius-lg 8px`
+    — moderate and consistent, never pill-shaped by default (badges are
+    flat rectangles with a thin border rather than fully rounded pills).
+  - Flat cards/tables with 1px borders instead of drop shadows, a dark flat
+    sidebar with a left accent-border active state, and the same accent
+    palette applied to `frontend/src/components/Charts.tsx`'s `COLORS`
+    array and the KPI/priority color maps in `Dashboard.tsx` /
+    `CampaignDetail.tsx` so charts and badges stay visually consistent.
+  - The existing mobile breakpoints (`@media (max-width: 768px)` /
+    `900px`), hamburger nav, `.table-scroll`, and chat FAB/overlay are
+    unchanged — only the tokens/colors/spacing feeding into them were
+    updated.

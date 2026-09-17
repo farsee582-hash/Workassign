@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const COLORS = ['#3b6ef6', '#22a06b', '#e0a326', '#e0473b', '#8a5cf5', '#0aa8b0'];
+const COLORS = ['#1d4ed8', '#1e7a4c', '#a5690f', '#c0392b', '#5b3fa6', '#0e7c86'];
 
 /** Dependency-free horizontal bar chart with a hover tooltip. */
 export function BarChart({ data }: { data: { label: string; value: number; color?: string }[] }) {

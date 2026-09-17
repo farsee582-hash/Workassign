@@ -144,9 +144,9 @@ export default function Dashboard() {
                   <div style={{ marginTop: 10 }}>
                     <DonutChart
                       data={[
-                        { label: 'Completed', value: mgmt.tasks.completed, color: '#22a06b' },
-                        { label: 'Pending', value: mgmt.tasks.pending - mgmt.tasks.overdue, color: '#3b6ef6' },
-                        { label: 'Overdue', value: mgmt.tasks.overdue, color: '#e0473b' },
+                        { label: 'Completed', value: mgmt.tasks.completed, color: '#1e7a4c' },
+                        { label: 'Pending', value: mgmt.tasks.pending - mgmt.tasks.overdue, color: '#1d4ed8' },
+                        { label: 'Overdue', value: mgmt.tasks.overdue, color: '#c0392b' },
                       ]}
                     />
                   </div>
