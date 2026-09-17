@@ -3,13 +3,11 @@ import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import type { Department, ManagementDashboard, MyDashboard, RecentActivityItem, Task } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
-import { BarChart, DonutChart, GaugeChart } from '../components/Charts';
+import { BarChart, GaugeChart } from '../components/Charts';
 import { Link } from 'react-router-dom';
 
 const managementRoles = ['GMA', 'AGM', 'ADMIN', 'MANAGER', 'COORDINATOR'];
 const ROLES = ['GMA', 'AGM', 'COORDINATOR', 'MANAGER', 'ASSISTANT_MANAGER', 'EXECUTIVE'];
-
-const kpiTints = ['var(--color-accent-tint)'];
 
 function KpiIcon({ kind }: { kind: 'list' | 'clock' | 'progress' | 'calendar' | 'alert' | 'check' | 'flag' | 'megaphone' }) {
   const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -47,18 +45,6 @@ function StatInline({ value, label, icon }: { value: number | string; label: str
   );
 }
 
-function Kpi({ value, label, icon, tint }: { value: number | string; label: string; icon: Parameters<typeof KpiIcon>[0]['kind']; tint: string }) {
-  return (
-    <div className="kpi-card">
-      <div className="icon-chip" style={{ background: tint }}>
-        <KpiIcon kind={icon} />
-      </div>
-      <div className="value">{value}</div>
-      <div className="label">{label}</div>
-    </div>
-  );
-}
-
 function TaskRow({ task }: { task: Task }) {
   return (
     <tr>
@@ -71,6 +57,18 @@ function TaskRow({ task }: { task: Task }) {
         <StatusBadge status={task.status} overdue={task.overdue} />
       </td>
     </tr>
+  );
+}
+
+function ProgressPill({ label, percent, wide }: { label: string; percent: number; wide?: boolean }) {
+  return (
+    <div className={`progress-pill${wide ? ' wide' : ''}`}>
+      <div className="progress-pill-label">{label}</div>
+      <div className="progress-pill-track">
+        <div className="progress-pill-fill" style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} />
+        <span className="progress-pill-pct">{percent}%</span>
+      </div>
+    </div>
   );
 }
 
@@ -295,69 +293,41 @@ export default function Dashboard() {
             const completionPercent = mgmt.tasks.total > 0 ? Math.round((mgmt.tasks.completed / mgmt.tasks.total) * 100) : 0;
             const inProgressCount = mgmt.tasks.inProgress;
             const pendingOnly = Math.max(0, mgmt.tasks.pending - inProgressCount - mgmt.tasks.overdue);
+            const pct = (n: number) => (mgmt.tasks.total > 0 ? Math.round((n / mgmt.tasks.total) * 100) : 0);
             const topCampaigns = [...mgmt.campaignProgress]
               .sort((a, b) => (a.status === 'IN_PROGRESS' ? -1 : 1) - (b.status === 'IN_PROGRESS' ? -1 : 1) || b.completionPercent - a.completionPercent)
               .slice(0, 6);
+            const upcomingCampaigns = mgmt.campaignProgress.filter((c) => c.status === 'DRAFT' || c.status === 'PLANNED').slice(0, 6);
             return (
               <>
-                <div className="kpi-grid">
-                  <Kpi value={mgmt.campaigns.active} label="Active Campaigns" icon="megaphone" tint={kpiTints[0]} />
-                  <div className="kpi-card">
-                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="list" /></div>
-                    <div className="value">{mgmt.tasks.total}</div>
-                    <div className="label">Total Tasks</div>
-                    <div className="sub">{mgmt.tasks.pending} pending</div>
-                  </div>
-                  <div className="kpi-card">
-                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="check" /></div>
-                    <div className="value">{mgmt.tasks.completed}</div>
-                    <div className="label">Completed</div>
-                    <div className="sub">{completionPercent}%</div>
-                  </div>
-                  <div className="kpi-card">
-                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="progress" /></div>
-                    <div className="value">{inProgressCount}</div>
-                    <div className="label">In Progress</div>
-                    <div className="sub">{pendingOnly} not started</div>
-                  </div>
-                  <div className="kpi-card">
-                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="alert" /></div>
-                    <div className="value">{mgmt.tasks.overdue}</div>
-                    <div className="label">Overdue</div>
-                    {mgmt.tasks.overdue > 0 && <div className="sub warn">⚠ Attention</div>}
-                  </div>
-                  <div className="kpi-card">
-                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="calendar" /></div>
-                    <div className="value">{mgmt.tasks.dueToday}</div>
-                    <div className="label">Due Today</div>
+                <div className="dash-pill-row">
+                  <ProgressPill label="Completed" percent={pct(mgmt.tasks.completed)} />
+                  <ProgressPill label="In Progress" percent={pct(inProgressCount)} />
+                  <ProgressPill label="Overdue" percent={pct(mgmt.tasks.overdue)} wide />
+                  <ProgressPill label="Pending" percent={pct(pendingOnly)} />
+                  <div className="dash-pill-stats">
+                    <div className="stat-card-outline">
+                      <span className="label">Active campaigns</span>
+                      <span className="value">{mgmt.campaigns.active}</span>
+                    </div>
+                    <div className="stat-card-outline">
+                      <span className="label">Overall work progress</span>
+                      <span className="value">{completionPercent}%</span>
+                    </div>
+                    <div className="stat-card-outline">
+                      <span className="label">Overdue</span>
+                      <span className="value">{mgmt.tasks.overdue}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(260px, 1fr)', gap: 16, marginTop: 8 }}>
-                  <div className="card card-wide">
-                    <strong>Overall Work Progress</strong>
-                    <div className="hero-progress" style={{ marginTop: 14 }}>
-                      <div>
-                        <div className="hero-progress-number">{completionPercent}%</div>
-                        <div style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: 'var(--fs-sm)' }}>Overall completion</div>
-                      </div>
-                      <DonutChart
-                        data={[
-                          { label: 'Completed', value: mgmt.tasks.completed, color: '#241f18' },
-                          { label: 'In Progress', value: inProgressCount, color: '#f2ab0e' },
-                          { label: 'Pending', value: pendingOnly, color: '#a89a7c' },
-                          { label: 'Overdue', value: mgmt.tasks.overdue, color: '#c0432b' },
-                        ]}
-                      />
-                    </div>
-                  </div>
-
+                <div className="dash-main-grid">
                   <div className="card">
-                    <strong>Department Progress</strong>
-                    <div style={{ marginTop: 12 }}>
-                      {mgmt.departmentCompletion.length === 0 && <div className="empty-note">No department data yet.</div>}
-                      {mgmt.departmentCompletion.map((d) => (
-                        <ProgressRow key={d.id} name={d.name} percent={d.completionPercent} />
+                    <strong>Upcoming Campaigns</strong>
+                    <div style={{ marginTop: 8 }}>
+                      {upcomingCampaigns.length === 0 && <div className="empty-note">No upcoming campaigns.</div>}
+                      {upcomingCampaigns.map((c) => (
+                        <ProgressRow key={c.id} num={c.campaignNumber} name={c.name} percent={c.completionPercent} href={`/campaigns/${c.id}`} />
                       ))}
                     </div>
                   </div>
@@ -382,6 +352,16 @@ export default function Dashboard() {
                   </div>
 
                   <div className="card">
+                    <strong>Department Progress</strong>
+                    <div style={{ marginTop: 12 }}>
+                      {mgmt.departmentCompletion.length === 0 && <div className="empty-note">No department data yet.</div>}
+                      {mgmt.departmentCompletion.map((d) => (
+                        <ProgressRow key={d.id} name={d.name} percent={d.completionPercent} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="card dash-attn-tall">
                     <strong>Attention Required</strong>
                     <div style={{ marginTop: 8 }}>
                       <div className="attn-row">
@@ -404,6 +384,18 @@ export default function Dashboard() {
                         <span className="attn-row-text">Revision required</span>
                         <span className="attn-row-count">{mgmt.tasks.revisionRequired}</span>
                       </div>
+                      {activity && activity.length > 0 && (
+                        <>
+                          <div className="deadline-group-label" style={{ marginTop: 18 }}>Recent Activity</div>
+                          {activity.slice(0, 6).map((a) => (
+                            <div className="activity-row" key={a.id}>
+                              <span className="attn-dot accent" />
+                              <span className="activity-row-text">{describeActivity(a)}</span>
+                              <span className="activity-row-time">{timeAgo(a.createdAt)}</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -414,48 +406,40 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="card">
-                    <strong>Upcoming Deadlines</strong>
-                    <div style={{ marginTop: 4 }}>
-                      <div className="deadline-group-label">Today</div>
-                      {mgmt.upcomingDeadlines.today.length === 0 && <div className="empty-note">Nothing due today.</div>}
-                      {mgmt.upcomingDeadlines.today.map((t) => (
-                        <div className="deadline-row" key={t.id}>
-                          <span className="attn-dot warn" />
-                          <div className="attn-row-text">
-                            <div className="deadline-row-title"><Link to={`/tasks/${t.id}`}>{t.title}</Link></div>
-                            <div className="deadline-row-meta">{t.department} · {t.assignedTo}</div>
-                          </div>
-                        </div>
-                      ))}
-                      <div className="deadline-group-label">Tomorrow</div>
-                      {mgmt.upcomingDeadlines.tomorrow.length === 0 && <div className="empty-note">Nothing due tomorrow.</div>}
-                      {mgmt.upcomingDeadlines.tomorrow.map((t) => (
-                        <div className="deadline-row" key={t.id}>
-                          <span className="attn-dot" />
-                          <div className="attn-row-text">
-                            <div className="deadline-row-title"><Link to={`/tasks/${t.id}`}>{t.title}</Link></div>
-                            <div className="deadline-row-meta">{t.department} · {t.assignedTo}</div>
-                          </div>
-                        </div>
-                      ))}
+                  <div className="card dash-calendar-wide">
+                    <div className="card-header-row">
+                      <strong>Calendar</strong>
+                      <Link to="/calendar" className="card-link">Open Calendar →</Link>
                     </div>
-                  </div>
-
-                  {activity && activity.length > 0 && (
-                    <div className="card">
-                      <strong>Recent Activity</strong>
-                      <div style={{ marginTop: 8 }}>
-                        {activity.map((a) => (
-                          <div className="activity-row" key={a.id}>
-                            <span className="attn-dot accent" />
-                            <span className="activity-row-text">{describeActivity(a)}</span>
-                            <span className="activity-row-time">{timeAgo(a.createdAt)}</span>
+                    <div className="dash-calendar-cols">
+                      <div>
+                        <div className="deadline-group-label">Today</div>
+                        {mgmt.upcomingDeadlines.today.length === 0 && <div className="empty-note">Nothing due today.</div>}
+                        {mgmt.upcomingDeadlines.today.map((t) => (
+                          <div className="deadline-row" key={t.id}>
+                            <span className="attn-dot warn" />
+                            <div className="attn-row-text">
+                              <div className="deadline-row-title"><Link to={`/tasks/${t.id}`}>{t.title}</Link></div>
+                              <div className="deadline-row-meta">{t.department} · {t.assignedTo}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <div className="deadline-group-label">Tomorrow</div>
+                        {mgmt.upcomingDeadlines.tomorrow.length === 0 && <div className="empty-note">Nothing due tomorrow.</div>}
+                        {mgmt.upcomingDeadlines.tomorrow.map((t) => (
+                          <div className="deadline-row" key={t.id}>
+                            <span className="attn-dot" />
+                            <div className="attn-row-text">
+                              <div className="deadline-row-title"><Link to={`/tasks/${t.id}`}>{t.title}</Link></div>
+                              <div className="deadline-row-meta">{t.department} · {t.assignedTo}</div>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 <h3 style={{ marginTop: 20 }}>Staff With Pending Work</h3>

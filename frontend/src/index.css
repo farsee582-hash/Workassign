@@ -439,6 +439,74 @@ input:focus, select:focus, textarea:focus {
 .hero-progress-number { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
 .hero-progress-legend { display: flex; flex-direction: column; gap: 8px; }
 
+/* ---------- Management Overview: pill row + outline stat cards ---------- */
+.dash-pill-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin: var(--sp-4) 0 var(--sp-5);
+}
+.progress-pill { flex: 0 0 auto; min-width: 110px; }
+.progress-pill.wide { flex: 1 1 220px; }
+.progress-pill-label { font-size: var(--fs-xs); color: var(--color-text-muted); font-weight: 600; margin-bottom: 4px; }
+.progress-pill-track {
+  position: relative;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.progress-pill-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: var(--color-accent-300);
+  border-radius: var(--radius-pill);
+  transition: width .3s ease;
+}
+.progress-pill-pct { position: relative; z-index: 1; margin: 0 auto; font-size: var(--fs-sm); font-weight: 700; }
+
+.dash-pill-stats { display: flex; gap: var(--sp-3); margin-left: auto; flex-wrap: wrap; }
+.stat-card-outline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  min-width: 140px;
+}
+.stat-card-outline .label { font-size: var(--fs-xs); color: var(--color-text-muted); font-weight: 600; }
+.stat-card-outline .value { font-size: var(--fs-xl); font-weight: 800; line-height: 1; }
+
+.dash-main-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr)) minmax(260px, 320px);
+  grid-template-rows: auto auto;
+  gap: var(--sp-4);
+}
+.dash-main-grid .dash-attn-tall { grid-row: span 2; }
+.dash-main-grid .dash-calendar-wide { grid-column: span 2; }
+.dash-calendar-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); margin-top: 4px; }
+
+@media (max-width: 1100px) {
+  .dash-main-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-main-grid .dash-attn-tall { grid-row: span 1; grid-column: span 2; }
+  .dash-main-grid .dash-calendar-wide { grid-column: span 2; }
+}
+@media (max-width: 768px) {
+  .dash-main-grid { grid-template-columns: 1fr; }
+  .dash-main-grid .dash-attn-tall, .dash-main-grid .dash-calendar-wide { grid-column: 1; }
+  .dash-calendar-cols { grid-template-columns: 1fr; }
+  .dash-pill-stats { width: 100%; margin-left: 0; }
+  .progress-pill, .progress-pill.wide { flex: 1 1 45%; }
+}
+
 /* ---------- Attention / deadline / activity list rows ---------- */
 .attn-row, .deadline-row, .activity-row {
   display: flex;
