@@ -105,8 +105,8 @@
   --shadow-lg: 0 18px 44px rgba(66, 58, 47, 0.14);
 
   /* Gradients — subtle, warm, within the cream/amber family */
-  --gradient-page: radial-gradient(circle at 15% 0%, #fde389 0%, #fcd254 28%, #f7ead0 62%, #f7ead0 100%);
-  --gradient-hero: linear-gradient(135deg, #fff3d4 0%, #fce4a0 45%, #f7c65a 100%);
+  --gradient-page: linear-gradient(180deg, #fbf5e6 0%, #f8f0da 55%, #f5ebd0 100%);
+  --gradient-hero: linear-gradient(135deg, #fff6e0 0%, #fce8ab 50%, #f7cf5e 100%);
 
   /* Legacy aliases kept for anything still referencing the old names */
   --bg: var(--color-bg);
@@ -347,10 +347,8 @@ input:focus, select:focus, textarea:focus {
 
 /* ---------- Cards ---------- */
 .card {
-  background: rgba(255, 255, 255, 0.55);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--sp-5);
   box-shadow: var(--shadow-sm);
@@ -363,10 +361,8 @@ input:focus, select:focus, textarea:focus {
   margin: var(--sp-4) 0 var(--sp-6);
 }
 .kpi-card {
-  background: rgba(255, 255, 255, 0.55);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--sp-4);
   box-shadow: var(--shadow-sm);
