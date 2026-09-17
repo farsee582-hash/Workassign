@@ -281,4 +281,70 @@ router.get('/:id/progress', requireCampaignAccess(), async (req, res) => {
   res.json({ campaignId: campaign.id, campaignName: campaign.name, departments: progress });
 });
 
+// Dedicated per-campaign dashboard: KPI totals, status breakdown, department
+// completion, staff workload and priority breakdown — all computed live from
+// this campaign's Task rows. Overdue uses the same definition used
+// everywhere else in the app: dueDate < now && status not in (COMPLETED, CANCELLED).
+router.get('/:id/dashboard', requireCampaignAccess(), async (req, res) => {
+  const campaign = await prisma.campaign.findUnique({
+    where: { id: req.params.id },
+    include: { departments: { include: { department: true } } },
+  });
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+  const tasks = await prisma.task.findMany({
+    where: { campaignId: req.params.id },
+    include: { assignedTo: { select: { id: true, name: true } }, department: { select: { id: true, name: true } } },
+  });
+
+  const isOverdue = (t: (typeof tasks)[number]) =>
+    t.dueDate < new Date() && !['COMPLETED', 'CANCELLED'].includes(t.status);
+
+  const total = tasks.length;
+  const completed = tasks.filter((t) => t.status === 'COMPLETED').length;
+  const inProgress = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
+  const overdue = tasks.filter(isOverdue).length;
+  const pending = tasks.filter((t) => !['COMPLETED', 'CANCELLED'].includes(t.status)).length;
+
+  const deptMap = new Map<string, { id: string; name: string; total: number; completed: number }>();
+  tasks.forEach((t) => {
+    const entry = deptMap.get(t.department.id) ?? { id: t.department.id, name: t.department.name, total: 0, completed: 0 };
+    entry.total += 1;
+    if (t.status === 'COMPLETED') entry.completed += 1;
+    deptMap.set(t.department.id, entry);
+  });
+
+  const staffMap = new Map<string, { id: string; name: string; total: number; pending: number }>();
+  tasks.forEach((t) => {
+    const entry = staffMap.get(t.assignedTo.id) ?? { id: t.assignedTo.id, name: t.assignedTo.name, total: 0, pending: 0 };
+    entry.total += 1;
+    if (!['COMPLETED', 'CANCELLED'].includes(t.status)) entry.pending += 1;
+    staffMap.set(t.assignedTo.id, entry);
+  });
+
+  const priorityMap = new Map<string, number>();
+  tasks.forEach((t) => {
+    priorityMap.set(t.priority, (priorityMap.get(t.priority) ?? 0) + 1);
+  });
+
+  res.json({
+    campaignId: campaign.id,
+    campaignName: campaign.name,
+    kpis: {
+      total,
+      completed,
+      inProgress,
+      pending,
+      overdue,
+      completionPercent: total ? Math.round((completed / total) * 100) : 0,
+    },
+    departmentCompletion: Array.from(deptMap.values()).map((d) => ({
+      ...d,
+      completionPercent: d.total ? Math.round((d.completed / d.total) * 100) : 0,
+    })),
+    staffWorkload: Array.from(staffMap.values()).sort((a, b) => b.total - a.total),
+    priorityBreakdown: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map((p) => ({ priority: p, count: priorityMap.get(p) ?? 0 })),
+  });
+});
+
 export default router;

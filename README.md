@@ -196,7 +196,9 @@ per selected person via `POST /tasks/bulk`.
 - `GET/POST/PUT/DELETE /campaigns`, `POST/DELETE /campaigns/:id/departments`,
   `PUT /campaigns/:id/access` (replace the access list),
   `GET/POST /campaigns/:id/messages` (chat),
-  `GET /campaigns/:id/progress` (auto-calculated department completion %)
+  `GET /campaigns/:id/progress` (auto-calculated department completion %),
+  `GET /campaigns/:id/dashboard` (per-campaign mini-dashboard: KPI totals,
+  status/priority breakdown, department completion, staff workload)
 - `GET/POST/PUT/DELETE /tasks`, `POST /tasks/bulk` (bulk-assign to many
   staff), `PATCH /tasks/:id/status`, `PATCH /tasks/:id/assign`,
   `POST /tasks/:id/comments`, `POST /tasks/:id/attachments`
@@ -281,3 +283,12 @@ without any other code changes.
   (`frontend/src/pages/Calendar.tsx`)
 - Campaign chat file attachments (any file type, inline base64 storage, 3MB
   cap) — see "Attachment storage tradeoff" above
+- Dedicated per-campaign dashboard on the Campaign Detail page: a KPI row
+  (total/completed/in-progress/pending/overdue/completion %), task status
+  donut, department completion bar chart, staff workload bar chart and
+  priority breakdown, all computed live from that campaign's tasks by the new
+  `GET /campaigns/:id/dashboard` endpoint (reuses the same `hasCampaignAccess`
+  check and overdue definition as the rest of the campaign routes, and the
+  same `BarChart`/`DonutChart`/`.kpi-grid`/`.charts-grid` components/styles as
+  the management dashboard — no new schema fields or charting library). The
+  existing per-department task table stays below it unchanged.

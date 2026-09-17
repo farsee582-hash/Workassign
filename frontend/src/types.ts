@@ -188,3 +188,19 @@ export interface ManagementDashboard {
   departmentCompletion: { id: string; name: string; total: number; completed: number; completionPercent: number }[];
   campaignProgress: { id: string; name: string; campaignNumber: string | null; status: string; taskCount: number; completionPercent: number }[];
 }
+
+export interface CampaignDashboard {
+  campaignId: string;
+  campaignName: string;
+  kpis: {
+    total: number;
+    completed: number;
+    inProgress: number;
+    pending: number;
+    overdue: number;
+    completionPercent: number;
+  };
+  departmentCompletion: { id: string; name: string; total: number; completed: number; completionPercent: number }[];
+  staffWorkload: { id: string; name: string; total: number; pending: number }[];
+  priorityBreakdown: { priority: string; count: number }[];
+}

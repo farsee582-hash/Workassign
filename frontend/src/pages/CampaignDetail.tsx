@@ -2,10 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Campaign, CampaignMessage, CampaignProgress, Department } from '../types';
+import type { Campaign, CampaignDashboard, CampaignMessage, CampaignProgress, Department } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../auth/AuthContext';
 import AssignWorkForm from '../components/AssignWorkForm';
+import { BarChart, DonutChart } from '../components/Charts';
+
+const PRIORITY_COLORS: Record<string, string> = {
+  LOW: '#3b6ef6',
+  MEDIUM: '#e0a326',
+  HIGH: '#e0854b',
+  URGENT: '#e0473b',
+};
 
 const canManage = ['ADMIN', 'GMA', 'AGM', 'MANAGER', 'COORDINATOR'];
 const canAssignRoles = ['GMA', 'AGM', 'COORDINATOR', 'MANAGER', 'ADMIN'];
@@ -429,6 +437,7 @@ export default function CampaignDetail() {
   const { user } = useAuth();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [progress, setProgress] = useState<CampaignProgress | null>(null);
+  const [dashboard, setDashboard] = useState<CampaignDashboard | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDept, setSelectedDept] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
@@ -440,6 +449,7 @@ export default function CampaignDetail() {
       if (e?.response?.status === 403) setForbidden(true);
     });
     api.get(`/campaigns/${id}/progress`).then((r) => setProgress(r.data)).catch(() => {});
+    api.get(`/campaigns/${id}/dashboard`).then((r) => setDashboard(r.data)).catch(() => {});
   }
 
   useEffect(() => {
@@ -480,6 +490,61 @@ export default function CampaignDetail() {
             <div><strong>Dates:</strong> {new Date(campaign.startDate).toLocaleDateString()} – {new Date(campaign.endDate).toLocaleDateString()}</div>
           </div>
         </div>
+
+        {dashboard && (
+          <>
+            <div className="section-title">
+              <h2>Campaign Dashboard</h2>
+            </div>
+            <div className="kpi-grid">
+              <div className="kpi-card"><div className="value">{dashboard.kpis.total}</div><div className="label">Total tasks</div></div>
+              <div className="kpi-card"><div className="value">{dashboard.kpis.completed}</div><div className="label">Completed</div></div>
+              <div className="kpi-card"><div className="value">{dashboard.kpis.inProgress}</div><div className="label">In progress</div></div>
+              <div className="kpi-card"><div className="value">{dashboard.kpis.pending}</div><div className="label">Pending</div></div>
+              <div className="kpi-card"><div className="value">{dashboard.kpis.overdue}</div><div className="label">Overdue</div></div>
+              <div className="kpi-card"><div className="value">{dashboard.kpis.completionPercent}%</div><div className="label">Completion</div></div>
+            </div>
+
+            <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(260px, 1fr)', gap: 16, marginTop: 8, marginBottom: 20 }}>
+              <div className="card">
+                <strong>Task Status Breakdown</strong>
+                <div style={{ marginTop: 10 }}>
+                  <DonutChart
+                    data={[
+                      { label: 'Completed', value: dashboard.kpis.completed, color: '#22a06b' },
+                      { label: 'Pending', value: dashboard.kpis.pending - dashboard.kpis.overdue, color: '#3b6ef6' },
+                      { label: 'Overdue', value: dashboard.kpis.overdue, color: '#e0473b' },
+                    ]}
+                  />
+                </div>
+              </div>
+              <div className="card">
+                <strong>Department-wise Completion</strong>
+                <div style={{ marginTop: 10 }}>
+                  <BarChart data={dashboard.departmentCompletion.map((d) => ({ label: d.name, value: d.completionPercent }))} />
+                </div>
+              </div>
+              <div className="card">
+                <strong>Staff Workload</strong>
+                <div style={{ marginTop: 10 }}>
+                  <BarChart data={dashboard.staffWorkload.slice(0, 8).map((s) => ({ label: s.name, value: s.total }))} />
+                </div>
+              </div>
+              <div className="card">
+                <strong>Priority Breakdown</strong>
+                <div style={{ marginTop: 10 }}>
+                  <BarChart
+                    data={dashboard.priorityBreakdown.map((p) => ({
+                      label: p.priority,
+                      value: p.count,
+                      color: PRIORITY_COLORS[p.priority],
+                    }))}
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="section-title">
           <h2>Department Progress</h2>
