@@ -140,13 +140,16 @@ export default function Dashboard() {
         <div className="dash-header-right">
           <div className="dash-header-controls">
             {isManager && (
-              <select className="glass dash-range-select" value={range} onChange={(e) => setRange(e.target.value)} aria-label="Date range">
-                <option value="all">All time</option>
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="custom">Custom</option>
-              </select>
+              <div className="glass dash-range-wrap">
+                <span className="icon" aria-hidden="true">📅</span>
+                <select className="dash-range-select" value={range} onChange={(e) => setRange(e.target.value)} aria-label="Date range">
+                  <option value="all">All time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
             )}
             <div className="dash-notif-wrap">
               <button
