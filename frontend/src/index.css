@@ -1029,7 +1029,7 @@ tbody tr:last-child td { border-bottom: none; }
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-5);
-  margin-top: var(--sp-4);
+  margin-top: var(--sp-6);
 }
 .dash-stat-row-below {
   margin-top: 0;
