@@ -226,11 +226,15 @@ input:focus, select:focus, textarea:focus {
 /* ---------- App shell / sidebar ---------- */
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .sidebar {
   width: 250px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
   background: var(--color-surface);
   color: var(--color-text);
   padding: var(--sp-5) var(--sp-3);
@@ -324,7 +328,7 @@ input:focus, select:focus, textarea:focus {
 .sidebar .user-info .user-meta div:last-child { color: var(--color-text-muted); font-size: var(--fs-xs); }
 .sidebar .user-info .btn { padding: 6px 8px; }
 
-.content { flex: 1; padding: var(--sp-6); max-width: 1280px; }
+.content { flex: 1; padding: var(--sp-6); max-width: 1280px; overflow-y: auto; height: 100vh; }
 
 /* ---------- Avatar chips (initials) ---------- */
 .avatar-chip {
