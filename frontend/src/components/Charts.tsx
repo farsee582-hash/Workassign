@@ -85,53 +85,55 @@ export function GaugeChart({
   const p = Math.max(min, Math.min(max, percent));
   const frac = (p - min) / (max - min || 1);
   const r = size / 2;
-  const stroke = size * 0.2;
+  const stroke = size * 0.09; // thin ring, like the reference — not a thick donut
   const radius = r - stroke / 2;
-  const circumference = Math.PI * radius; // half circle
-  const filled = frac * circumference;
-  const pad = size * 0.14; // extra room for tick labels around the arc
+  const pad = size * 0.16; // room for tick labels outside the ring
   const cx = r + pad;
-  const cy = r + stroke / 2;
-  const svgW = size + pad * 2;
-  const svgH = r + stroke / 2 + pad * 0.6;
-  const gaugeId = `gauge-grad-${size}-${label ?? 'x'}`.replace(/\s+/g, '');
+  const cy = r + pad;
+  const svgSize = size + pad * 2;
 
-  // Angle of the arc runs from 180deg (left) to 0deg (right) along the top half.
-  const angleFor = (f: number) => Math.PI - f * Math.PI;
-  const pointAt = (f: number, rad: number) => {
-    const a = angleFor(f);
-    return { x: cx + rad * Math.cos(a), y: cy - rad * Math.sin(a) };
-  };
-  const handle = pointAt(frac, radius);
+  // Near-full ring with a gap centered at the bottom (a speedometer-style
+  // gauge), not a plain semicircle. 0deg = 3 o'clock, increases clockwise
+  // (SVG's y-axis points down, so increasing angle sweeps clockwise).
+  const gapDeg = 60;
+  const sweepDeg = 360 - gapDeg;
+  const startDeg = 90 + gapDeg / 2;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const pointAt = (deg: number, rad: number) => ({
+    x: cx + rad * Math.cos(toRad(deg)),
+    y: cy + rad * Math.sin(toRad(deg)),
+  });
+  const endDeg = startDeg + sweepDeg;
+  const filledEndDeg = startDeg + frac * sweepDeg;
+  const largeArc = (deg: number) => (deg - startDeg > 180 ? 1 : 0);
+
+  const trackStart = pointAt(startDeg, radius);
+  const trackEnd = pointAt(endDeg, radius);
+  const filledEnd = pointAt(filledEndDeg, radius);
+  const handle = pointAt(filledEndDeg, radius);
   const ticks = showTicks ? [0, 0.2, 0.4, 0.6, 0.8, 1] : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
-        <defs>
-          <linearGradient id={gaugeId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#c99a13" />
-            <stop offset="55%" stopColor="#e8b923" />
-            <stop offset="100%" stopColor="#f6d271" />
-          </linearGradient>
-        </defs>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+      <svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
         <path
-          d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
+          d={`M ${trackStart.x} ${trackStart.y} A ${radius} ${radius} 0 ${largeArc(endDeg)} 1 ${trackEnd.x} ${trackEnd.y}`}
           fill="none"
           stroke="#f2ead9"
           strokeWidth={stroke}
           strokeLinecap="round"
         />
-        <path
-          d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
-          fill="none"
-          stroke={`url(#${gaugeId})`}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={`${filled} ${circumference - filled}`}
-        />
+        {frac > 0 && (
+          <path
+            d={`M ${trackStart.x} ${trackStart.y} A ${radius} ${radius} 0 ${largeArc(filledEndDeg)} 1 ${filledEnd.x} ${filledEnd.y}`}
+            fill="none"
+            stroke="#e8b923"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+          />
+        )}
         {ticks.map((t) => {
-          const tp = pointAt(t, radius + stroke * 0.72);
+          const tp = pointAt(startDeg + t * sweepDeg, radius + stroke * 1.1);
           return (
             <text
               key={t}
@@ -139,7 +141,7 @@ export function GaugeChart({
               y={tp.y}
               textAnchor="middle"
               dominantBaseline="central"
-              fontSize={size * 0.075}
+              fontSize={size * 0.06}
               fontWeight={600}
               fill="#a99e88"
             >
@@ -147,10 +149,22 @@ export function GaugeChart({
             </text>
           );
         })}
-        <circle cx={handle.x} cy={handle.y} r={stroke * 0.42} fill="#fff" stroke="#e8b923" strokeWidth={size * 0.02} style={{ filter: 'drop-shadow(0 2px 4px rgba(66,58,47,0.35))' }} />
+        {frac > 0 && (
+          <circle cx={handle.x} cy={handle.y} r={stroke * 0.75} fill="#fff" stroke="#e8b923" strokeWidth={stroke * 0.35} style={{ filter: 'drop-shadow(0 2px 4px rgba(66,58,47,0.3))' }} />
+        )}
       </svg>
-      <div style={{ marginTop: -svgH * 0.42, fontSize: size * 0.26, fontWeight: 800, color: '#241f18' }}>{Math.round(frac * 100)}%</div>
-      {label && <div style={{ fontSize: 12, color: '#746a5c', fontWeight: 600, marginTop: 4 }}>{label}</div>}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: size * 0.22, fontWeight: 800, color: '#241f18', lineHeight: 1 }}>{Math.round(frac * 100)}%</div>
+        {label && <div style={{ fontSize: size * 0.065, color: '#746a5c', fontWeight: 600, marginTop: 4, whiteSpace: 'nowrap' }}>{label}</div>}
+      </div>
     </div>
   );
 }
