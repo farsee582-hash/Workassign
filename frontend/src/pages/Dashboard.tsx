@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 const managementRoles = ['GMA', 'AGM', 'ADMIN', 'MANAGER', 'COORDINATOR'];
 const ROLES = ['GMA', 'AGM', 'COORDINATOR', 'MANAGER', 'ASSISTANT_MANAGER', 'EXECUTIVE'];
 
-const kpiTints = ['#fdf1cf', '#e6f2ea', '#e8eefb', '#fbe7e2', '#f2ecfb', '#fdf1cf'];
+const kpiTints = ['var(--color-accent-tint)'];
 
 function KpiIcon({ kind }: { kind: 'list' | 'clock' | 'progress' | 'calendar' | 'alert' | 'check' | 'flag' | 'megaphone' }) {
   const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -191,12 +191,12 @@ export default function Dashboard() {
       {my && (
         <div className="kpi-grid">
           <Kpi value={my.counts.total} label="Total tasks" icon="list" tint={kpiTints[0]} />
-          <Kpi value={my.counts.pending} label="Pending" icon="clock" tint={kpiTints[1]} />
-          <Kpi value={my.counts.inProgress} label="In progress" icon="progress" tint={kpiTints[2]} />
-          <Kpi value={my.counts.dueToday} label="Due today" icon="calendar" tint={kpiTints[3]} />
-          <Kpi value={my.counts.dueTomorrow} label="Due tomorrow" icon="calendar" tint={kpiTints[4]} />
-          <Kpi value={my.counts.overdue} label="Overdue" icon="alert" tint={kpiTints[5]} />
-          <Kpi value={my.counts.completed} label="Completed" icon="check" tint={kpiTints[1]} />
+          <Kpi value={my.counts.pending} label="Pending" icon="clock" tint={kpiTints[0]} />
+          <Kpi value={my.counts.inProgress} label="In progress" icon="progress" tint={kpiTints[0]} />
+          <Kpi value={my.counts.dueToday} label="Due today" icon="calendar" tint={kpiTints[0]} />
+          <Kpi value={my.counts.dueTomorrow} label="Due tomorrow" icon="calendar" tint={kpiTints[0]} />
+          <Kpi value={my.counts.overdue} label="Overdue" icon="alert" tint={kpiTints[0]} />
+          <Kpi value={my.counts.completed} label="Completed" icon="check" tint={kpiTints[0]} />
         </div>
       )}
 
@@ -245,11 +245,11 @@ export default function Dashboard() {
             <>
               <div className="kpi-grid">
                 <Kpi value={mgmt.campaigns.total} label="Total campaigns" icon="megaphone" tint={kpiTints[0]} />
-                <Kpi value={mgmt.campaigns.active} label="Active campaigns" icon="flag" tint={kpiTints[2]} />
-                <Kpi value={mgmt.campaigns.completed} label="Completed campaigns" icon="check" tint={kpiTints[1]} />
-                <Kpi value={mgmt.tasks.total} label="Total tasks" icon="list" tint={kpiTints[4]} />
-                <Kpi value={mgmt.tasks.pending} label="Pending tasks" icon="clock" tint={kpiTints[1]} />
-                <Kpi value={mgmt.tasks.overdue} label="Overdue tasks" icon="alert" tint={kpiTints[5]} />
+                <Kpi value={mgmt.campaigns.active} label="Active campaigns" icon="flag" tint={kpiTints[0]} />
+                <Kpi value={mgmt.campaigns.completed} label="Completed campaigns" icon="check" tint={kpiTints[0]} />
+                <Kpi value={mgmt.tasks.total} label="Total tasks" icon="list" tint={kpiTints[0]} />
+                <Kpi value={mgmt.tasks.pending} label="Pending tasks" icon="clock" tint={kpiTints[0]} />
+                <Kpi value={mgmt.tasks.overdue} label="Overdue tasks" icon="alert" tint={kpiTints[0]} />
               </div>
 
               <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(260px, 1fr)', gap: 16, marginTop: 8 }}>
@@ -258,9 +258,9 @@ export default function Dashboard() {
                   <div style={{ marginTop: 10 }}>
                     <DonutChart
                       data={[
-                        { label: 'Completed', value: mgmt.tasks.completed, color: '#1e7a4c' },
-                        { label: 'Pending', value: mgmt.tasks.pending - mgmt.tasks.overdue, color: '#1d4ed8' },
-                        { label: 'Overdue', value: mgmt.tasks.overdue, color: '#c0392b' },
+                        { label: 'Completed', value: mgmt.tasks.completed, color: '#241f18' },
+                        { label: 'Pending', value: mgmt.tasks.pending - mgmt.tasks.overdue, color: '#a89a7c' },
+                        { label: 'Overdue', value: mgmt.tasks.overdue, color: '#c0432b' },
                       ]}
                     />
                   </div>

@@ -347,8 +347,10 @@ input:focus, select:focus, textarea:focus {
 
 /* ---------- Cards ---------- */
 .card {
-  background: var(--color-surface);
-  border: none;
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--radius-lg);
   padding: var(--sp-5);
   box-shadow: var(--shadow-sm);
@@ -361,8 +363,10 @@ input:focus, select:focus, textarea:focus {
   margin: var(--sp-4) 0 var(--sp-6);
 }
 .kpi-card {
-  background: var(--color-surface);
-  border: none;
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--radius-lg);
   padding: var(--sp-4);
   box-shadow: var(--shadow-sm);
