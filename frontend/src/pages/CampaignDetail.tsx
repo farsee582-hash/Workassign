@@ -23,9 +23,62 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+// Candidate mimeTypes for MediaRecorder, in preference order. iOS/iPadOS
+// Safari (14.3+) records audio but does NOT support the `audio/webm` family
+// that Chrome/Firefox default to — it only supports MP4-wrapped audio
+// (`audio/mp4`, often reported by MediaRecorder.isTypeSupported as
+// `audio/mp4;codecs=mp4a.40.2` for AAC). Chromium-based browsers support
+// `audio/webm` (opus) but not `audio/mp4`. We probe with
+// MediaRecorder.isTypeSupported() at record time rather than assuming a
+// single browser's behavior, and fall back to letting the browser pick its
+// own default (passing no mimeType) if none of the candidates report as
+// supported, so recording still works even if our list is incomplete.
+const AUDIO_MIME_CANDIDATES = [
+  'audio/mp4', // Safari (iOS/iPadOS/macOS) default supported container
+  'audio/webm;codecs=opus', // Chrome/Firefox/Edge
+  'audio/webm',
+  'audio/aac',
+  'audio/ogg;codecs=opus',
+];
+
+function pickAudioMimeType(): string | undefined {
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return undefined;
+  return AUDIO_MIME_CANDIDATES.find((t) => {
+    try {
+      return MediaRecorder.isTypeSupported(t);
+    } catch {
+      return false;
+    }
+  });
+}
+
+function extensionForMime(mime: string): string {
+  if (mime.includes('mp4')) return 'm4a';
+  if (mime.includes('webm')) return 'webm';
+  if (mime.includes('aac')) return 'aac';
+  if (mime.includes('ogg')) return 'ogg';
+  return 'audio';
+}
+
+// Cap recording duration rather than trying to track base64 size live while
+// still recording — a simpler, robust proxy for staying under the 3MB
+// attachment cap (typical compressed voice audio at ~16-32kbps is well
+// under 3MB for 2 minutes; see README "Voice messages").
+const MAX_RECORDING_MS = 2 * 60 * 1000;
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 function AttachmentPreview({ m }: { m: CampaignMessage }) {
   if (!m.attachmentData) return null;
   const isImage = m.attachmentType?.startsWith('image/');
+  const isAudio = m.attachmentType?.startsWith('audio/');
   if (isImage) {
     return (
       <a href={m.attachmentData} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 4 }}>
@@ -35,6 +88,13 @@ function AttachmentPreview({ m }: { m: CampaignMessage }) {
           style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 6, display: 'block' }}
         />
       </a>
+    );
+  }
+  if (isAudio) {
+    return (
+      <audio controls src={m.attachmentData} style={{ display: 'block', marginTop: 4, maxWidth: '100%' }}>
+        Your browser does not support audio playback.
+      </audio>
     );
   }
   return (
@@ -57,6 +117,109 @@ function ChatPanel({ campaignId }: { campaignId: string }) {
   const [error, setError] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voiceMime, setVoiceMime] = useState<string>('');
+  const [voiceUrl, setVoiceUrl] = useState<string>('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  function stopStream() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }
+
+  function clearRecordTimer() {
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+  }
+
+  async function startRecording() {
+    setError('');
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setError('Voice recording is not supported on this device/browser.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mimeType = pickAudioMimeType();
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recordedChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        const actualMime = recorder.mimeType || mimeType || 'audio/webm';
+        const blob = new Blob(recordedChunksRef.current, { type: actualMime });
+        setVoiceBlob(blob);
+        setVoiceMime(actualMime);
+        setVoiceUrl(URL.createObjectURL(blob));
+        stopStream();
+        clearRecordTimer();
+        setIsRecording(false);
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+      setRecordSeconds(0);
+      recordTimerRef.current = setInterval(() => {
+        setRecordSeconds((s) => {
+          const next = s + 1;
+          if (next * 1000 >= MAX_RECORDING_MS) {
+            mediaRecorderRef.current?.stop();
+          }
+          return next;
+        });
+      }, 1000);
+    } catch (err) {
+      setError('Microphone access was denied or unavailable. Check Safari settings and allow microphone access for this site.');
+    }
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop();
+  }
+
+  function cancelRecording() {
+    // Discard: stop the recorder without keeping the resulting blob.
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.onstop = () => {
+        stopStream();
+      };
+      mediaRecorderRef.current.stop();
+    } else {
+      stopStream();
+    }
+    clearRecordTimer();
+    setIsRecording(false);
+    setRecordSeconds(0);
+  }
+
+  function discardVoice() {
+    if (voiceUrl) URL.revokeObjectURL(voiceUrl);
+    setVoiceBlob(null);
+    setVoiceMime('');
+    setVoiceUrl('');
+  }
+
+  useEffect(() => {
+    return () => {
+      clearRecordTimer();
+      stopStream();
+      if (voiceUrl) URL.revokeObjectURL(voiceUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function load() {
     api.get(`/campaigns/${campaignId}/messages`).then((r) => setMessages(r.data)).catch(() => {});
@@ -86,13 +249,22 @@ function ChatPanel({ campaignId }: { campaignId: string }) {
 
   async function send(e: FormEvent) {
     e.preventDefault();
-    if (!text.trim() && !file) return;
+    if (!text.trim() && !file && !voiceBlob) return;
     setSending(true);
     setError('');
     try {
       const payload: Record<string, unknown> = {};
       if (text.trim()) payload.text = text.trim();
-      if (file) {
+      if (voiceBlob) {
+        if (voiceBlob.size > MAX_ATTACHMENT_BYTES) {
+          setError(`Voice message too large — max ${MAX_ATTACHMENT_BYTES / (1024 * 1024)}MB. Try a shorter recording.`);
+          setSending(false);
+          return;
+        }
+        payload.attachmentName = `voice-message.${extensionForMime(voiceMime)}`;
+        payload.attachmentType = voiceMime || 'audio/webm';
+        payload.attachmentData = await blobToDataUrl(voiceBlob);
+      } else if (file) {
         payload.attachmentName = file.name;
         payload.attachmentType = file.type || 'application/octet-stream';
         payload.attachmentData = await fileToDataUrl(file);
@@ -101,6 +273,7 @@ function ChatPanel({ campaignId }: { campaignId: string }) {
       setText('');
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      discardVoice();
       load();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to send message.');
@@ -135,12 +308,82 @@ function ChatPanel({ campaignId }: { campaignId: string }) {
           </button>
         </div>
       )}
+
+      {isRecording && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginTop: 8,
+            padding: '10px 12px',
+            borderRadius: 8,
+            background: '#fdeaea',
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              background: '#e11d48',
+              flexShrink: 0,
+              animation: 'pulse 1s infinite',
+            }}
+          />
+          <span style={{ fontSize: 14, fontWeight: 600 }}>
+            Recording… {String(Math.floor(recordSeconds / 60)).padStart(2, '0')}:{String(recordSeconds % 60).padStart(2, '0')}
+          </span>
+          <div style={{ flex: 1 }} />
+          <button
+            type="button"
+            className="btn secondary"
+            style={{ minHeight: 44, minWidth: 44, padding: '8px 14px' }}
+            onClick={cancelRecording}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{ minHeight: 44, minWidth: 44, padding: '8px 14px', background: '#e11d48', borderColor: '#e11d48' }}
+            onClick={stopRecording}
+          >
+            Stop
+          </button>
+        </div>
+      )}
+
+      {!isRecording && voiceBlob && voiceUrl && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginTop: 8,
+            padding: '10px 12px',
+            borderRadius: 8,
+            background: '#eef2ff',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: 13 }}>🎤 Voice message ready</span>
+          <audio controls src={voiceUrl} style={{ maxWidth: 220 }} />
+          <div style={{ flex: 1 }} />
+          <button type="button" className="btn secondary small" style={{ minHeight: 40 }} onClick={discardVoice}>
+            Re-record
+          </button>
+        </div>
+      )}
+
       <form onSubmit={send} style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
         <input
           placeholder="Type a message…"
           value={text}
           onChange={(e) => setText(e.target.value)}
           style={{ flex: '1 1 160px' }}
+          disabled={isRecording}
         />
         <input
           ref={fileInputRef}
@@ -152,13 +395,24 @@ function ChatPanel({ campaignId }: { campaignId: string }) {
         <label
           htmlFor={`chat-file-${campaignId}`}
           className="btn secondary small"
-          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', opacity: isRecording ? 0.5 : 1, pointerEvents: isRecording ? 'none' : 'auto' }}
           title="Attach a file"
         >
           📎
         </label>
-        <button className="btn small" disabled={sending}>Send</button>
+        <button
+          type="button"
+          className="btn secondary small"
+          style={{ display: 'flex', alignItems: 'center', minWidth: 44, minHeight: 44 }}
+          title={isRecording ? 'Recording…' : 'Record a voice message'}
+          disabled={isRecording}
+          onClick={startRecording}
+        >
+          🎙️
+        </button>
+        <button className="btn small" disabled={sending || isRecording}>Send</button>
       </form>
+      <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
     </div>
   );
 }

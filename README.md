@@ -90,6 +90,27 @@ as a filename + download link. If this grows past MVP usage, swap in Vercel
 Blob (or similar) the same way the `TaskAttachment` tradeoff note above
 describes.
 
+**Voice messages reuse this exact mechanism — no new schema fields.** The
+chat input's 🎙️ button records audio with `MediaRecorder`
+(`navigator.mediaDevices.getUserMedia({ audio: true })`), lets the user
+preview/re-record before sending, then sends the recorded `Blob` through the
+same `attachmentName`/`attachmentType`/`attachmentData` fields as a file
+attachment (`attachmentType` is the real recorded MIME type, e.g. `audio/mp4`
+on Safari or `audio/webm` on Chrome; `attachmentName` gets a matching
+extension). Playback renders an inline `<audio controls>` player whenever
+`attachmentType` starts with `audio/`, alongside the existing image-thumbnail
+and generic-download cases. Since MediaRecorder's default/supported
+`mimeType` differs by browser (iOS/iPadOS Safari only supports MP4-wrapped
+audio, not `audio/webm`), the recorder probes
+`MediaRecorder.isTypeSupported()` against a candidate list (`audio/mp4` first
+for Safari, then `audio/webm;codecs=opus` for Chromium/Firefox, then other
+fallbacks) rather than assuming one browser's behavior. Rather than tracking
+exact base64 byte size live during recording, recording auto-stops at **~2
+minutes** as a simple, robust proxy for staying under the existing 3MB
+attachment cap (compressed voice audio at typical bitrates is well under 3MB
+for 2 minutes); the same 3MB check on the resulting blob still applies before
+sending, same as any other attachment.
+
 ## Getting started
 
 ### Backend
