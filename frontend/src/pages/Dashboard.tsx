@@ -189,6 +189,16 @@ export default function Dashboard() {
           <div className="dash-breadcrumb">Home / Dashboard</div>
           <h1 className="dash-greeting">{greeting}, {firstName}</h1>
           <div className="dash-subtitle">It&rsquo;s {todayLabel}</div>
+          {my && (
+            <div className="dash-stat-row">
+              <StatInline value={my.counts.total} label="Total tasks" icon="list" />
+              <StatInline value={my.counts.pending} label="Pending" icon="clock" />
+              <StatInline value={my.counts.inProgress} label="In progress" icon="progress" />
+              <StatInline value={my.counts.dueToday} label="Due today" icon="calendar" />
+              <StatInline value={my.counts.overdue} label="Overdue" icon="alert" />
+              <StatInline value={my.counts.completed} label="Completed" icon="check" />
+            </div>
+          )}
         </div>
         <div className="dash-header-right">
           <div className="dash-header-controls">
@@ -230,17 +240,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-      {my && (
-        <div className="dash-stat-row dash-stat-row-below">
-          <StatInline value={my.counts.total} label="Total tasks" icon="list" />
-          <StatInline value={my.counts.pending} label="Pending" icon="clock" />
-          <StatInline value={my.counts.inProgress} label="In progress" icon="progress" />
-          <StatInline value={my.counts.dueToday} label="Due today" icon="calendar" />
-          <StatInline value={my.counts.overdue} label="Overdue" icon="alert" />
-          <StatInline value={my.counts.completed} label="Completed" icon="check" />
-        </div>
-      )}
 
       {isManager && range === 'custom' && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
