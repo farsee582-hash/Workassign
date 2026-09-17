@@ -342,3 +342,68 @@ This means the app currently has the *correct palette, fonts, spacing unit
 and square-corner radius* from the Modernist spec applied globally, but the
 screen-by-screen layouts and the new interactive functionality described in
 the handoff doc are still open work for a follow-up pass.
+
+### Design direction pivot: Modernist → soft rounded "cream" style
+
+The Modernist direction above (square corners, dark sidebar, mustard-on-cool-
+grey, condensed Archivo Narrow type) was superseded after the user reviewed
+it and asked for a different, softer aesthetic based on a new reference
+screenshot. `frontend/src/index.css`'s `:root` token block was **replaced**
+(not layered) with a new system:
+
+- Warm cream page background (`--color-bg: #f7f0e2`), white rounded cards
+  with soft box-shadows instead of hairline borders
+  (`--radius-lg: 20px`, `--shadow-sm/md/lg`)
+- One warm amber accent (`--color-accent-500: #e8b923`) plus charcoal
+  (`--color-charcoal: #241f18`) as the strong contrast color, used for
+  primary buttons and the sidebar's active nav tile
+- Plus Jakarta Sans (Google Fonts) replaces Archivo/Archivo Narrow; no more
+  uppercase-tracked labels
+- Status badges are soft-tinted rounded pills; buttons are pill-shaped
+- Sidebar rebuilt as a 2-column grid of rounded nav tiles with the active
+  item shown as a solid charcoal tile, a "Quick Links" section with colored
+  dot bullets, and a profile card (avatar-initials chip + name + role +
+  log-out) pinned at the bottom — the existing mobile hamburger-collapse
+  behavior is unchanged underneath this new look
+- `frontend/src/components/Charts.tsx`'s `COLORS` palette updated to the new
+  amber/charcoal/muted set, and two new dependency-free SVG chart helpers
+  were added in the same style: `GaugeChart` (semicircular progress ring for
+  a hero percentage) and `LineChart` (sparkline with a dashed average
+  reference line). No charting library was introduced.
+
+**Kanban view (new, on My Work only):** `frontend/src/pages/TaskListPage.tsx`
+gained a List/Kanban toggle, shown only on the "My Work" page. Kanban groups
+the real `Task.status` enum into 4 columns — Not Started (`NOT_STARTED`,
+`ASSIGNED`), In Progress (`IN_PROGRESS`, `ON_HOLD`), Submitted/Review
+(`SUBMITTED`, `UNDER_REVIEW`, `REVISION_REQUIRED`), Completed (`APPROVED`,
+`COMPLETED`). Cards show title, an assignee initials chip, due date and a
+priority tag, with a status-colored left accent bar (red for overdue).
+Dragging a card to another column uses native HTML5 drag-and-drop
+(`draggable`/`onDragStart`/`onDragOver`/`onDrop` — no new dependency) and
+calls the existing `PATCH /tasks/:id/status` endpoint, with an optimistic
+UI update that rolls back on failure and a brief toast confirmation either
+way. No schema changes were needed or made.
+
+**Restyle status by page (this pass):**
+- Done via the shared token/class rewrite (card, btn, kpi-card, badge,
+  table, tab-bar, calendar grid, sidebar, mobile patterns all live in
+  `index.css`): Dashboard, Login (uses only shared `.login-page`/
+  `.login-box`/`.btn` classes, so it picked up the new look automatically),
+  Calendar, Task Detail, Recurring Work, Campaigns, Campaign Detail,
+  Organization & Access — all render with the new cream/white/amber system
+  and rounded corners because they build on the shared classes.
+- **Kanban view** (the explicitly-requested missing piece): implemented on
+  **My Work only**, as scoped.
+- **Not yet individually redesigned beyond the shared tokens:** a handful of
+  small inline hex values remain in `CampaignDetail.tsx` (priority-color map,
+  chat bubble backgrounds, a couple of KPI-chart colors) and `Dashboard.tsx`
+  (management KPI donut colors) that were not remapped to the new palette's
+  exact hex values — they still read fine on the new cream background
+  (blue/green/red semantic colors) but haven't been swapped for the amber-
+  first palette. A follow-up pass could tighten these plus add the
+  gauge/grouped-bar-chart/list-card patterns described in the new reference
+  (KPI gauge, grouped bar chart with floating labels, search-box-in-card-
+  header, small linked stat chips) to Dashboard and Campaign Detail
+  specifically — the primitives (`GaugeChart`, `LineChart`, `.stat-chip`,
+  `.card-header`, `.search-box` CSS) now exist in `Charts.tsx`/`index.css`
+  for that follow-up to use.
