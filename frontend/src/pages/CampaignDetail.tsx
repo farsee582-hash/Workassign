@@ -108,7 +108,7 @@ function AttachmentPreview({ m }: { m: CampaignMessage }) {
   );
 }
 
-function ChatPanel({ campaignId }: { campaignId: string }) {
+function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () => void }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<CampaignMessage[]>([]);
   const [text, setText] = useState('');
@@ -283,8 +283,15 @@ function ChatPanel({ campaignId }: { campaignId: string }) {
   }
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', height: 480 }}>
-      <strong style={{ marginBottom: 8 }}>Campaign Chat</strong>
+    <div className="card chat-panel" style={{ display: 'flex', flexDirection: 'column', height: 480 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <strong>Campaign Chat</strong>
+        {onClose && (
+          <button type="button" className="btn secondary small chat-close-btn" onClick={onClose} aria-label="Close chat">
+            ✕
+          </button>
+        )}
+      </div>
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
         {messages.map((m) => (
           <div key={m.id} style={{ background: m.userId === user?.id ? '#eaf1ff' : '#f4f5f7', borderRadius: 6, padding: '6px 8px' }}>
@@ -426,6 +433,7 @@ export default function CampaignDetail() {
   const [selectedDept, setSelectedDept] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
   const [forbidden, setForbidden] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   function reload() {
     api.get(`/campaigns/${id}`).then((r) => setCampaign(r.data)).catch((e) => {
@@ -456,7 +464,7 @@ export default function CampaignDetail() {
   const canAddTask = !!user && (canAssignRoles.includes(user.role) || campaign.coordinatorId === user.id);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 20, alignItems: 'start' }}>
+    <div className="campaign-detail-grid">
       <div>
         <div className="section-title">
           <h2>{campaign.name} <span style={{ color: '#888', fontWeight: 400 }}>({campaign.campaignNumber})</span></h2>
@@ -532,7 +540,19 @@ export default function CampaignDetail() {
         )}
       </div>
 
-      <ChatPanel campaignId={campaign.id} />
+      <div className={`chat-panel-wrap${chatOpen ? ' open' : ''}`}>
+        <ChatPanel campaignId={campaign.id} onClose={() => setChatOpen(false)} />
+      </div>
+
+      <button
+        type="button"
+        className="chat-fab"
+        onClick={() => setChatOpen(true)}
+        aria-label="Open campaign chat"
+        title="Campaign Chat"
+      >
+        💬
+      </button>
     </div>
   );
 }
