@@ -194,8 +194,8 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-          <div className="glass dash-gauge-card">
-            <GaugeChart percent={overallPercent} size={140} label="Overall completion" />
+          <div className="dash-gauge-card">
+            <GaugeChart percent={overallPercent} size={200} label="Overall completion" />
           </div>
         </div>
       </div>

@@ -983,8 +983,9 @@ tbody tr:last-child td { border-bottom: none; }
 .dash-notif-item:last-child { border-bottom: none; }
 .dash-notif-item.overdue { color: var(--color-danger); }
 .dash-gauge-card {
-  border-radius: var(--radius-lg);
-  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
