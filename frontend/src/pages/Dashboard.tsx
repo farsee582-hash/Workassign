@@ -35,6 +35,18 @@ function KpiIcon({ kind }: { kind: 'list' | 'clock' | 'progress' | 'calendar' | 
   }
 }
 
+function StatInline({ value, label, icon }: { value: number | string; label: string; icon: Parameters<typeof KpiIcon>[0]['kind'] }) {
+  return (
+    <div className="dash-stat">
+      <div className="dash-stat-icon"><KpiIcon kind={icon} /></div>
+      <div>
+        <div className="dash-stat-value">{value}</div>
+        <div className="dash-stat-label">{label}</div>
+      </div>
+    </div>
+  );
+}
+
 function Kpi({ value, label, icon, tint }: { value: number | string; label: string; icon: Parameters<typeof KpiIcon>[0]['kind']; tint: string }) {
   return (
     <div className="kpi-card">
@@ -136,6 +148,16 @@ export default function Dashboard() {
           <div className="dash-breadcrumb">Home / Dashboard</div>
           <h1 className="dash-greeting">{greeting}, {firstName}</h1>
           <div className="dash-subtitle">It&rsquo;s {todayLabel}</div>
+          {my && (
+            <div className="dash-stat-row">
+              <StatInline value={my.counts.total} label="Total tasks" icon="list" />
+              <StatInline value={my.counts.pending} label="Pending" icon="clock" />
+              <StatInline value={my.counts.inProgress} label="In progress" icon="progress" />
+              <StatInline value={my.counts.dueToday} label="Due today" icon="calendar" />
+              <StatInline value={my.counts.overdue} label="Overdue" icon="alert" />
+              <StatInline value={my.counts.completed} label="Completed" icon="check" />
+            </div>
+          )}
         </div>
         <div className="dash-header-right">
           <div className="dash-header-controls">
@@ -182,21 +204,6 @@ export default function Dashboard() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
           <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
-        </div>
-      )}
-
-      <div className="section-title">
-        <h2>My Dashboard</h2>
-      </div>
-      {my && (
-        <div className="kpi-grid">
-          <Kpi value={my.counts.total} label="Total tasks" icon="list" tint={kpiTints[0]} />
-          <Kpi value={my.counts.pending} label="Pending" icon="clock" tint={kpiTints[0]} />
-          <Kpi value={my.counts.inProgress} label="In progress" icon="progress" tint={kpiTints[0]} />
-          <Kpi value={my.counts.dueToday} label="Due today" icon="calendar" tint={kpiTints[0]} />
-          <Kpi value={my.counts.dueTomorrow} label="Due tomorrow" icon="calendar" tint={kpiTints[0]} />
-          <Kpi value={my.counts.overdue} label="Overdue" icon="alert" tint={kpiTints[0]} />
-          <Kpi value={my.counts.completed} label="Completed" icon="check" tint={kpiTints[0]} />
         </div>
       )}
 

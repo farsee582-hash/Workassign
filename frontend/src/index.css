@@ -877,6 +877,30 @@ tbody tr:last-child td { border-bottom: none; }
   font-size: var(--fs-sm);
   font-weight: 600;
 }
+.dash-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-5);
+  margin-top: var(--sp-4);
+}
+.dash-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dash-stat-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--color-accent-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dash-stat-value { font-size: var(--fs-md); font-weight: 800; line-height: 1.1; }
+.dash-stat-label { font-size: var(--fs-xs); color: var(--color-text-muted); }
 .dash-header-right {
   display: flex;
   flex-direction: column;
