@@ -5,53 +5,98 @@
    single source of truth for color/spacing/type — avoid one-off hex values
    in component CSS below.
    ========================================================================== */
-:root {
-  /* Neutral scale */
-  --color-bg: #f6f6f3;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f0f0ec;
-  --color-border: #dcdcd5;
-  --color-border-strong: #b8b8ad;
-  --color-text: #14141a;
-  --color-text-muted: #63636b;
-  --color-text-faint: #8d8d92;
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Archivo+Narrow:wght@400;500;600&display=swap');
 
-  /* Accents — small, restrained set */
-  --color-primary: #1d4ed8;
-  --color-primary-dark: #16399e;
-  --color-primary-tint: #e8edfc;
-  --color-danger: #c0392b;
-  --color-danger-tint: #fbebe9;
-  --color-warn: #a5690f;
-  --color-warn-tint: #faf0dd;
-  --color-success: #1e7a4c;
-  --color-success-tint: #e5f4ec;
+:root {
+  /* Modernist ground tokens (Claude Design "Modernist" spec) */
+  --color-bg: #f4f4f2;
+  --color-surface: #e8e8e5;
+  --color-surface-alt: #eae7e7;
+  --color-text: #16181a;
+  --color-text-muted: #605d5d;
+  --color-text-faint: #7d7979;
+  --color-divider: rgba(22, 24, 26, 0.20);
+  --color-border: var(--color-divider);
+  --color-border-strong: rgba(22, 24, 26, 0.34);
+
+  /* Neutral ramp 100 -> 900 */
+  --color-neutral-100: #f8f4f4;
+  --color-neutral-200: #eae7e7;
+  --color-neutral-300: #d7d3d3;
+  --color-neutral-400: #bab6b6;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #7d7979;
+  --color-neutral-700: #605d5d;
+  --color-neutral-800: #444141;
+  --color-neutral-900: #2d2b2b;
+
+  /* Accent ramp 100 -> 900 */
+  --color-accent-100: #fff3e4;
+  --color-accent-200: #ffe3bf;
+  --color-accent-300: #facb8d;
+  --color-accent-400: #e1ad66;
+  --color-accent-500: #c28d41;
+  --color-accent-600: #a06f24;
+  --color-accent-700: #7d5411;
+  --color-accent-800: #5a3b0a;
+  --color-accent-900: #3a270d;
+  --color-accent: #b68235;
+
+  /* Accents mapped onto legacy semantic slots used across the app */
+  --color-primary: var(--color-accent);
+  --color-primary-dark: var(--color-accent-700);
+  --color-primary-tint: var(--color-accent-100);
+  --color-danger: #7d5411;
+  --color-danger-tint: var(--color-accent-100);
+  --color-warn: var(--color-accent-600);
+  --color-warn-tint: var(--color-accent-100);
+  --color-success: var(--color-accent-700);
+  --color-success-tint: var(--color-accent-100);
+
+  /* Status colors (README status table) */
+  --status-pending: var(--color-neutral-400);
+  --status-in-progress: var(--color-accent-400);
+  --status-submitted: var(--color-accent-500);
+  --status-completed: var(--color-accent-700);
+  --status-overdue: var(--color-neutral-800);
 
   /* Type scale */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-sans: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-heading: 'Archivo Narrow', var(--font-sans);
   --fs-xs: 0.72rem;
   --fs-sm: 0.85rem;
-  --fs-base: 0.95rem;
+  --fs-base: 0.9375rem;
   --fs-md: 1.05rem;
-  --fs-lg: 1.25rem;
-  --fs-xl: 1.6rem;
-  --fs-2xl: 2rem;
-  --lh-tight: 1.15;
-  --lh-normal: 1.5;
+  --fs-lg: 1.5625rem;
+  --fs-xl: 2rem;
+  --fs-2xl: 2.75rem;
+  --lh-tight: 1.12;
+  --lh-normal: 1.55;
 
-  /* Spacing scale */
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 24px;
-  --sp-6: 32px;
-  --sp-7: 48px;
+  /* Spacing scale — 1.15x, per spec (--space-1..8) */
+  --space-1: 4.6px;
+  --space-2: 9.2px;
+  --space-3: 13.8px;
+  --space-4: 18.4px;
+  --space-5: 27.6px;
+  --space-6: 36.8px;
+  --sp-1: var(--space-1);
+  --sp-2: var(--space-2);
+  --sp-3: var(--space-3);
+  --sp-4: var(--space-4);
+  --sp-5: var(--space-5);
+  --sp-6: var(--space-6);
+  --sp-7: var(--space-6);
 
-  /* Radius scale — moderate, consistent, never pill-shaped by default */
-  --radius-sm: 3px;
-  --radius-md: 5px;
-  --radius-lg: 8px;
+  /* Radius — square corners everywhere */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+
+  /* Flat modernist shadows */
+  --shadow-sm: 0 1px 0 var(--color-divider);
+  --shadow-md: 0 2px 0 var(--color-divider);
+  --shadow-lg: 0 18px 44px rgba(22, 24, 26, 0.26);
 
   /* Legacy aliases kept for anything still referencing the old names */
   --bg: var(--color-bg);
@@ -66,6 +111,7 @@
   --success: var(--color-success);
 
   font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
   color-scheme: light;
 }
 
@@ -81,15 +127,17 @@ body {
 }
 
 h1, h2, h3, h4 {
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-weight: 600;
   line-height: var(--lh-tight);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   margin: 0 0 var(--sp-3);
 }
 h1 { font-size: var(--fs-2xl); }
 h2 { font-size: var(--fs-xl); }
 h3 { font-size: var(--fs-lg); }
 h4 { font-size: var(--fs-md); }
+h6 { font-family: var(--font-heading); font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 600; margin: 0 0 var(--sp-2); }
 p { margin: 0 0 var(--sp-3); color: var(--color-text); }
 
 a { color: var(--color-primary); text-decoration: none; }

@@ -292,32 +292,53 @@ without any other code changes.
   same `BarChart`/`DonutChart`/`.kpi-grid`/`.charts-grid` components/styles as
   the management dashboard — no new schema fields or charting library). The
   existing per-department task table stays below it unchanged.
-- Modernist/Swiss-style visual redesign of the frontend (pure CSS, no new
-  dependencies, no functional changes). All colors, type sizes, spacing and
-  border radii are now driven by CSS custom properties defined at the top of
-  `frontend/src/index.css`:
-  - **Neutral scale**: `--color-bg #f6f6f3`, `--color-surface #ffffff`,
-    `--color-surface-alt #f0f0ec`, `--color-border #dcdcd5`,
-    `--color-border-strong #b8b8ad`, `--color-text #14141a`,
-    `--color-text-muted #63636b`, `--color-text-faint #8d8d92`.
-  - **Accents** (small, restrained set): `--color-primary #1d4ed8` (blue,
-    primary actions/links), `--color-danger #c0392b` (overdue/errors),
-    `--color-warn #a5690f` (in-progress/warning), `--color-success #1e7a4c`
-    (completed), each with a pale `-tint` variant for badge/status
-    backgrounds.
-  - **Type scale**: `--fs-xs 0.72rem` … `--fs-2xl 2rem`, with headings bold
-    and tightly tracked for a stronger hierarchy.
-  - **Spacing scale**: `--sp-1 4px` through `--sp-7 48px`, used consistently
-    for padding/margins/gaps instead of ad-hoc pixel values.
-  - **Radius scale**: `--radius-sm 3px`, `--radius-md 5px`, `--radius-lg 8px`
-    — moderate and consistent, never pill-shaped by default (badges are
-    flat rectangles with a thin border rather than fully rounded pills).
-  - Flat cards/tables with 1px borders instead of drop shadows, a dark flat
-    sidebar with a left accent-border active state, and the same accent
-    palette applied to `frontend/src/components/Charts.tsx`'s `COLORS`
-    array and the KPI/priority color maps in `Dashboard.tsx` /
-    `CampaignDetail.tsx` so charts and badges stay visually consistent.
-  - The existing mobile breakpoints (`@media (max-width: 768px)` /
-    `900px`), hamburger nav, `.table-scroll`, and chat FAB/overlay are
-    unchanged — only the tokens/colors/spacing feeding into them were
-    updated.
+- Modernist/Swiss-style visual redesign of the frontend, first pass (pure CSS,
+  no new dependencies, no functional changes). Flat cards/tables with 1px
+  borders instead of drop shadows, a dark flat sidebar with a left
+  accent-border active state, consistent spacing/radius scales.
+
+### "Modernist" Claude Design spec adoption (token layer, in progress)
+
+A high-fidelity Claude Design spec ("Work Management System — Modernist")
+was later supplied as the actual design target — an HTML prototype +
+handoff README + shared `styles.css` describing exact tokens, typography,
+per-screen layout and new interactions (kanban drag-and-drop, task drawer,
+Add Task wizard, global search, notifications panel, toasts, etc.).
+
+**Completed in this pass (Priority 1 — design tokens):**
+`frontend/src/index.css`'s `:root` block now defines the exact Modernist
+token set from the spec: `--color-bg #f4f4f2`, `--color-surface #e8e8e5`,
+`--color-text #16181a`, `--color-accent #b68235`,
+`--color-divider rgba(22,24,26,0.20)`, the full neutral ramp
+(`--color-neutral-100…900`) and accent ramp (`--color-accent-100…900`),
+`--shadow-sm/md/lg`, radius `0` everywhere, and the spacing scale
+(`--space-1…6` = 4.6/9.2/13.8/18.4/27.6/36.8px). Archivo + Archivo Narrow
+(400/500/600) are loaded via Google Fonts and applied to `--font-sans` /
+`--font-heading`; headings use Archivo Narrow 600 with `-0.02em` tracking,
+`h6` added for the 13px uppercase 0.14em label style, and
+`font-variant-numeric: tabular-nums` is set globally per the "every figure
+is tabular" rule. The old ad-hoc token values (`--color-primary` etc.) are
+kept as aliases pointing at the new accent/status tokens so every existing
+component that already referenced them (buttons, badges, charts, KPI cards,
+tables) picks up the new palette without per-file rewrites.
+
+**Not yet done — explicitly deferred, not silently skipped:**
+- The `styles.css` component-class vocabulary (`.btn`/`.btn-primary`/
+  `.btn-secondary`/`.btn-ghost`/`.tag`/`.seg`/`.radio`/`.dialog` etc.) has
+  **not** been rebuilt as first-class classes in `index.css` — existing
+  component styles were re-tokened in place rather than replaced with the
+  spec's class system.
+- **Priority 2** (per-screen layout rework — sidebar/top-bar shell, KPI
+  grid/donut/department/workload/deadline chart specs, Campaign Detail's
+  two-column + access-chips layout, Calendar's Monday-start/today-highlight
+  spec, Organization & Access's indented hierarchy + permissions matrix) was
+  **not performed** in this pass — screens keep their prior layout, now
+  under the new color/type/spacing tokens.
+- **Priority 3** (global search + notifications panel, toast system, My
+  Work list/kanban toggle with drag-and-drop, task drawer, Add Task wizard
+  modal, dashboard drill-down panels) was **not implemented**.
+
+This means the app currently has the *correct palette, fonts, spacing unit
+and square-corner radius* from the Modernist spec applied globally, but the
+screen-by-screen layouts and the new interactive functionality described in
+the handoff doc are still open work for a follow-up pass.
