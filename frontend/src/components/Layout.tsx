@@ -3,14 +3,19 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 const navItems = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/my-work', label: 'My Work' },
-  { to: '/calendar', label: 'Calendar' },
-  { to: '/campaigns', label: 'Campaigns' },
-  { to: '/daily-work', label: 'Daily Work' },
-  { to: '/recurring-work', label: 'Recurring Work' },
-  { to: '/admin', label: 'Organization & Access' },
+  { to: '/', label: 'Dashboard', icon: '▦' },
+  { to: '/my-work', label: 'My Work', icon: '✓' },
+  { to: '/calendar', label: 'Calendar', icon: '\u{1F4C5}' },
+  { to: '/campaigns', label: 'Campaigns', icon: '\u{1F4E3}' },
+  { to: '/daily-work', label: 'Daily Work', icon: '⚙' },
+  { to: '/recurring-work', label: 'Recurring', icon: '↻' },
+  { to: '/admin', label: 'Org & Access', icon: '\u{1F465}' },
 ];
+
+function initials(name?: string) {
+  if (!name) return '?';
+  return name.split(' ').filter(Boolean).slice(0, 2).map((n) => n[0]?.toUpperCase()).join('');
+}
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -43,15 +48,27 @@ export default function Layout() {
         <nav>
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.to === '/'}>
+              <span className="nav-icon">{item.icon}</span>
               {item.label}
             </NavLink>
           ))}
         </nav>
+        <div className="favorites">
+          <h6>QUICK LINKS</h6>
+          <ul>
+            <li><span className="dot" style={{ background: 'var(--color-accent-500)' }} /> Overdue tasks</li>
+            <li><span className="dot" style={{ background: '#4f83c9' }} /> Active campaigns</li>
+            <li><span className="dot" style={{ background: '#3f8a5c' }} /> Completed today</li>
+          </ul>
+        </div>
         <div className="user-info">
-          <div>{user?.name}</div>
-          <div>{user?.role}</div>
-          <button className="btn secondary small" style={{ marginTop: 8 }} onClick={logout}>
-            Log out
+          <div className="avatar-chip">{initials(user?.name)}</div>
+          <div className="user-meta">
+            <div>{user?.name}</div>
+            <div>{user?.role}</div>
+          </div>
+          <button className="btn secondary small" onClick={logout} aria-label="Log out">
+            {'⏻'}
           </button>
         </div>
       </aside>
