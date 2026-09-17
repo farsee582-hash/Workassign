@@ -37,6 +37,9 @@ export interface User {
   status: string;
   username: string;
   permissionLevel: number;
+  /** Count of this user's currently-open (not completed/cancelled) assigned tasks.
+   * Only present on the /users list response used by Organization & Access. */
+  openWorkCount?: number;
 }
 
 export interface CampaignAccessRow {

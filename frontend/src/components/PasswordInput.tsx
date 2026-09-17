@@ -8,13 +8,50 @@ export default function PasswordInput({
   onChange,
   required,
   placeholder,
+  variant = 'icon',
 }: {
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
   placeholder?: string;
+  /** 'icon' = small eye-icon toggle inside the field (default, used on Login).
+   *  'button' = uppercase bordered "SHOW"/"HIDE" toggle button beside the field. */
+  variant?: 'icon' | 'button';
 }) {
   const [visible, setVisible] = useState(false);
+
+  if (variant === 'button') {
+    return (
+      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+        <input
+          type={visible ? 'text' : 'password'}
+          value={value}
+          required={required}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          style={{ flex: 1 }}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          style={{
+            border: '1px solid var(--color-border-strong)',
+            background: 'var(--color-surface)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0 16px',
+            fontSize: 'var(--fs-xs)',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            color: 'var(--color-text-muted)',
+            textTransform: 'uppercase',
+          }}
+        >
+          {visible ? 'Hide' : 'Show'}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
       <input

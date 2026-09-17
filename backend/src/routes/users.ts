@@ -23,14 +23,25 @@ const userSelect = {
   permissionLevel: true,
 };
 
+// Terminal task statuses excluded from the "open work" count shown on the
+// Organization & Access staff table.
+const OPEN_WORK_EXCLUDED_STATUSES = ['COMPLETED', 'CANCELLED'];
+
 router.get('/', async (req, res) => {
   const { departmentId, role } = req.query as Record<string, string | undefined>;
   const users = await prisma.user.findMany({
     where: { departmentId: departmentId || undefined, role: role || undefined },
-    select: userSelect,
+    select: {
+      ...userSelect,
+      _count: {
+        select: {
+          assignedTasks: { where: { status: { notIn: OPEN_WORK_EXCLUDED_STATUSES } } },
+        },
+      },
+    },
     orderBy: { name: 'asc' },
   });
-  res.json(users);
+  res.json(users.map((u) => ({ ...u, openWorkCount: u._count.assignedTasks, _count: undefined })));
 });
 
 router.get('/:id', async (req, res) => {

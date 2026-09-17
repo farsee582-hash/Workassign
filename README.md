@@ -462,3 +462,23 @@ reference screenshot, pure frontend/CSS, no schema or API changes:
   checkmark-style SVG mark now sits immediately before the "WorkAssign"
   text in both the desktop sidebar header and the mobile top bar
   (pure CSS/inline SVG, no image asset).
+- **Organization & Access — Staff tab rebuilt** (`frontend/src/pages/Admin.tsx`)
+  to match the design-spec layout: a "New staff" form (name/ID/department/role,
+  then a full-width password field using `PasswordInput`'s new `variant="button"`
+  uppercase Show/Hide toggle plus a "stored hashed" caption), a "Staff" table
+  with Employee/ID/Department/Designation/Reporting To/Open Work/Status
+  columns, and a "Hierarchy" card built from real `reportingManagerId` chains
+  (Executives are collapsed into one "{Department} executives — N staff" row
+  per manager instead of listed individually). "Reporting To" resolves the
+  manager's name client-side from the already-loaded `/users` list (no backend
+  change needed); "Open Work" is a real per-user count of non-terminal
+  assigned tasks added as a `_count`/aggregate on the existing `GET /users`
+  query (`backend/src/routes/users.ts`) — additive and query-time only, no
+  schema migration.
+- **Permissions tab rebuilt** as a read-only matrix (Permission ×
+  GMA/AGM/Coordinator/Manager/Executive) that mirrors the real
+  `requireRoles(...)`/`canAssignWork(...)` server-side guards — e.g. "Manage
+  Users" and "Manage Permissions" are GMA-only (AGM is deliberately
+  unchecked, matching `requireRoles('ADMIN', 'GMA')` on the users/departments
+  write routes), while campaign/task/report actions follow the
+  `WORK_ASSIGNERS` group (GMA, AGM, Coordinator, Manager).
