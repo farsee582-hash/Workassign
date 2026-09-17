@@ -1031,6 +1031,16 @@ tbody tr:last-child td { border-bottom: none; }
   gap: var(--sp-5);
   margin-top: var(--sp-4);
 }
+.dash-stat-row-below {
+  margin-top: 0;
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.dash-stat-row-below .dash-stat-icon { background: var(--color-accent-tint); }
 .dash-stat {
   display: flex;
   align-items: center;
