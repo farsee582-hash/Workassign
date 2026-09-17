@@ -669,6 +669,31 @@ tbody tr:last-child td { border-bottom: none; }
   gap: var(--sp-5);
   align-items: start;
 }
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--sp-6) * 2);
+  max-height: calc(100vh - var(--sp-6) * 2);
+  position: sticky;
+  top: var(--sp-6);
+}
+.chat-textarea {
+  resize: none;
+  max-height: 140px;
+  overflow-y: auto;
+  line-height: 1.4;
+  padding: 8px 10px;
+  font-family: inherit;
+}
+.chat-msg-action {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+.chat-msg-action:hover { opacity: 1; }
 .chat-close-btn { display: none; }
 .chat-fab { display: none; }
 

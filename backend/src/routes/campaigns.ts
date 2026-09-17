@@ -242,6 +242,30 @@ router.post('/:id/messages', requireCampaignAccess(), async (req, res) => {
   res.status(201).json(message);
 });
 
+router.patch('/:id/messages/:messageId', requireCampaignAccess(), async (req, res) => {
+  const existing = await prisma.campaignMessage.findUnique({ where: { id: req.params.messageId } });
+  if (!existing || existing.campaignId !== req.params.id) return res.status(404).json({ error: 'Message not found' });
+  if (existing.userId !== req.user!.id) return res.status(403).json({ error: 'You can only edit your own messages' });
+  const trimmedText = req.body.text && String(req.body.text).trim() ? String(req.body.text).trim() : null;
+  if (!trimmedText && !existing.attachmentData) {
+    return res.status(400).json({ error: 'text is required' });
+  }
+  const message = await prisma.campaignMessage.update({
+    where: { id: req.params.messageId },
+    data: { text: trimmedText },
+    include: { user: { select: { id: true, name: true, department: { select: { name: true } } } } },
+  });
+  res.json(message);
+});
+
+router.delete('/:id/messages/:messageId', requireCampaignAccess(), async (req, res) => {
+  const existing = await prisma.campaignMessage.findUnique({ where: { id: req.params.messageId } });
+  if (!existing || existing.campaignId !== req.params.id) return res.status(404).json({ error: 'Message not found' });
+  if (existing.userId !== req.user!.id) return res.status(403).json({ error: 'You can only delete your own messages' });
+  await prisma.campaignMessage.delete({ where: { id: req.params.messageId } });
+  res.status(204).send();
+});
+
 // Department-wise completion is auto-calculated from task status/completionPercent,
 // never stored manually, so it always reflects live task data.
 router.get('/:id/progress', requireCampaignAccess(), async (req, res) => {

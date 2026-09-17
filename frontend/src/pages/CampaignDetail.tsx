@@ -123,8 +123,11 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -233,6 +236,22 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
     api.get(`/campaigns/${campaignId}/messages`).then((r) => setMessages(r.data)).catch(() => {});
   }
 
+  function startEdit(m: CampaignMessage) {
+    setEditingId(m.id);
+    setEditText(m.text ?? '');
+  }
+
+  async function saveEdit(messageId: string) {
+    await api.patch(`/campaigns/${campaignId}/messages/${messageId}`, { text: editText });
+    setEditingId(null);
+    load();
+  }
+
+  async function deleteMessage(messageId: string) {
+    await api.delete(`/campaigns/${campaignId}/messages/${messageId}`);
+    load();
+  }
+
   useEffect(() => {
     load();
     const interval = setInterval(load, 4000);
@@ -255,7 +274,7 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
     setFile(f);
   }
 
-  async function send(e: FormEvent) {
+  async function send(e: { preventDefault: () => void }) {
     e.preventDefault();
     if (!text.trim() && !file && !voiceBlob) return;
     setSending(true);
@@ -279,6 +298,7 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
       }
       await api.post(`/campaigns/${campaignId}/messages`, payload);
       setText('');
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       discardVoice();
@@ -291,7 +311,7 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
   }
 
   return (
-    <div className="card chat-panel" style={{ display: 'flex', flexDirection: 'column', height: 480 }}>
+    <div className="card chat-panel">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <strong>Campaign Chat</strong>
         {onClose && (
@@ -300,17 +320,43 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
           </button>
         )}
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
-        {messages.map((m) => (
-          <div key={m.id} style={{ background: m.userId === user?.id ? '#eaf1ff' : '#f4f5f7', borderRadius: 6, padding: '6px 8px' }}>
-            <div style={{ fontSize: 12, color: '#666', display: 'flex', justifyContent: 'space-between' }}>
-              <span><strong>{m.user.name}</strong>{m.user.department ? ` · ${m.user.department.name}` : ''}</span>
-              <span>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+      <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
+        {messages.map((m) => {
+          const isMine = m.userId === user?.id;
+          return (
+            <div key={m.id} style={{ background: isMine ? '#eaf1ff' : '#f4f5f7', borderRadius: 6, padding: '6px 8px' }}>
+              <div style={{ fontSize: 12, color: '#666', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <span><strong>{m.user.name}</strong>{m.user.department ? ` · ${m.user.department.name}` : ''}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {isMine && editingId !== m.id && (
+                    <>
+                      {m.text && (
+                        <button type="button" className="chat-msg-action" title="Edit" onClick={() => startEdit(m)}>✎</button>
+                      )}
+                      <button type="button" className="chat-msg-action" title="Delete" onClick={() => deleteMessage(m.id)}>🗑</button>
+                    </>
+                  )}
+                </span>
+              </div>
+              {editingId === m.id ? (
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <input
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    style={{ flex: 1, fontSize: 14 }}
+                    autoFocus
+                  />
+                  <button type="button" className="btn small" onClick={() => saveEdit(m.id)}>Save</button>
+                  <button type="button" className="btn secondary small" onClick={() => setEditingId(null)}>Cancel</button>
+                </div>
+              ) : (
+                m.text && <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{m.text}</div>
+              )}
+              <AttachmentPreview m={m} />
             </div>
-            {m.text && <div style={{ fontSize: 14 }}>{m.text}</div>}
-            <AttachmentPreview m={m} />
-          </div>
-        ))}
+          );
+        })}
         {messages.length === 0 && <p style={{ color: '#888' }}>No messages yet.</p>}
         <div ref={bottomRef} />
       </div>
@@ -393,10 +439,23 @@ function ChatPanel({ campaignId, onClose }: { campaignId: string; onClose?: () =
       )}
 
       <form onSubmit={send} style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-        <input
+        <textarea
           placeholder="Type a message…"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            e.target.style.height = 'auto';
+            e.target.style.height = `${e.target.scrollHeight}px`;
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              send(e);
+            }
+          }}
+          rows={1}
+          ref={textareaRef}
+          className="chat-textarea"
           style={{ flex: '1 1 160px' }}
           disabled={isRecording}
         />
