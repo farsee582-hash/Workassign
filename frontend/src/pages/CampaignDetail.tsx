@@ -10,7 +10,7 @@ import { BarChart, DonutChart } from '../components/Charts';
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: '#a89a7c',
-  MEDIUM: '#e8b923',
+  MEDIUM: '#f2ab0e',
   HIGH: '#c1622b',
   URGENT: '#c0432b',
 };

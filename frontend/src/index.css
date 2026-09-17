@@ -30,16 +30,16 @@
   --color-neutral-800: #423a2f;
   --color-neutral-900: #241f18;
 
-  /* Accent ramp (amber/mustard) 100 -> 900 */
-  --color-accent-100: #fdf1cf;
-  --color-accent-200: #fbe3a0;
-  --color-accent-300: #f6d271;
-  --color-accent-400: #f0c040;
-  --color-accent-500: #e8b923;
-  --color-accent-600: #c99a13;
-  --color-accent-700: #9e7a0f;
-  --color-accent-800: #6f560b;
-  --color-accent-900: #423308;
+  /* Accent ramp (bright, punchy gold) 100 -> 900 */
+  --color-accent-100: #fef3c7;
+  --color-accent-200: #fde389;
+  --color-accent-300: #fbcd4b;
+  --color-accent-400: #f7bc24;
+  --color-accent-500: #f2ab0e;
+  --color-accent-600: #d18f08;
+  --color-accent-700: #a06e08;
+  --color-accent-800: #70500e;
+  --color-accent-900: #46350f;
   --color-accent: var(--color-accent-500);
 
   /* Charcoal contrast color, used for primary strong actions / active tiles */
@@ -80,9 +80,9 @@
 
   /* Spacing scale */
   --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 14px;
-  --space-4: 20px;
+  --space-2: 7px;
+  --space-3: 11px;
+  --space-4: 16px;
   --space-5: 28px;
   --space-6: 36px;
   --sp-1: var(--space-1);
@@ -105,8 +105,8 @@
   --shadow-lg: 0 18px 44px rgba(66, 58, 47, 0.14);
 
   /* Gradients — subtle, warm, within the cream/amber family */
-  --gradient-page: linear-gradient(180deg, #f9f3e6 0%, #f7f0e2 45%, #f4ead6 100%);
-  --gradient-hero: linear-gradient(135deg, #fdf6e8 0%, #f8ecd2 45%, #f3ddb0 100%);
+  --gradient-page: radial-gradient(circle at 15% 0%, #fde389 0%, #fcd254 28%, #f7ead0 62%, #f7ead0 100%);
+  --gradient-hero: linear-gradient(135deg, #fff3d4 0%, #fce4a0 45%, #f7c65a 100%);
 
   /* Legacy aliases kept for anything still referencing the old names */
   --bg: var(--color-bg);

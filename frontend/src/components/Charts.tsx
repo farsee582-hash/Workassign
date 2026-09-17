@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const COLORS = ['#e8b923', '#241f18', '#a89a7c', '#c0432b'];
+const COLORS = ['#f2ab0e', '#241f18', '#a89a7c', '#c0432b'];
 
 /** Dependency-free horizontal bar chart with a hover tooltip. */
 export function BarChart({ data }: { data: { label: string; value: number; color?: string }[] }) {
@@ -119,7 +119,7 @@ export function GaugeChart({
         <path
           d={`M ${trackStart.x} ${trackStart.y} A ${radius} ${radius} 0 ${largeArc(endDeg)} 1 ${trackEnd.x} ${trackEnd.y}`}
           fill="none"
-          stroke="#f2ead9"
+          stroke="#fbe9c2"
           strokeWidth={stroke}
           strokeLinecap="round"
         />
@@ -127,7 +127,7 @@ export function GaugeChart({
           <path
             d={`M ${trackStart.x} ${trackStart.y} A ${radius} ${radius} 0 ${largeArc(filledEndDeg)} 1 ${filledEnd.x} ${filledEnd.y}`}
             fill="none"
-            stroke="#e8b923"
+            stroke="#f2ab0e"
             strokeWidth={stroke}
             strokeLinecap="round"
           />
@@ -150,7 +150,7 @@ export function GaugeChart({
           );
         })}
         {frac > 0 && (
-          <circle cx={handle.x} cy={handle.y} r={stroke * 0.75} fill="#fff" stroke="#e8b923" strokeWidth={stroke * 0.35} style={{ filter: 'drop-shadow(0 2px 4px rgba(66,58,47,0.3))' }} />
+          <circle cx={handle.x} cy={handle.y} r={stroke * 0.75} fill="#fff" stroke="#f2ab0e" strokeWidth={stroke * 0.35} style={{ filter: 'drop-shadow(0 2px 4px rgba(66,58,47,0.3))' }} />
         )}
       </svg>
       <div
@@ -183,7 +183,7 @@ export function LineChart({ points, width = 280, height = 80 }: { points: number
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ maxWidth: '100%' }}>
       <line x1={0} y1={avgY} x2={width} y2={avgY} stroke="#cabfa8" strokeWidth={1} strokeDasharray="4 4" />
-      <path d={path} fill="none" stroke="#e8b923" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke="#f2ab0e" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
       {points.map((v, i) => (
         <circle key={i} cx={i * stepX} cy={toY(v)} r={2.5} fill="#241f18" />
       ))}

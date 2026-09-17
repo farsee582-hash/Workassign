@@ -344,7 +344,7 @@ export default function Dashboard() {
                       <DonutChart
                         data={[
                           { label: 'Completed', value: mgmt.tasks.completed, color: '#241f18' },
-                          { label: 'In Progress', value: inProgressCount, color: '#e8b923' },
+                          { label: 'In Progress', value: inProgressCount, color: '#f2ab0e' },
                           { label: 'Pending', value: pendingOnly, color: '#a89a7c' },
                           { label: 'Overdue', value: mgmt.tasks.overdue, color: '#c0432b' },
                         ]}
