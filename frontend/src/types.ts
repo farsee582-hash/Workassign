@@ -197,10 +197,33 @@ export interface MyDashboard {
 export interface ManagementDashboard {
   filters: { range: string; departmentId: string | null; role: string | null };
   campaigns: { total: number; active: number; completed: number };
-  tasks: { total: number; pending: number; completed: number; overdue: number };
+  tasks: {
+    total: number;
+    pending: number;
+    completed: number;
+    overdue: number;
+    inProgress: number;
+    dueToday: number;
+    awaitingReview: number;
+    revisionRequired: number;
+  };
   staffWithPendingWork: { id: string; name: string; count: number }[];
   departmentCompletion: { id: string; name: string; total: number; completed: number; completionPercent: number }[];
   campaignProgress: { id: string; name: string; campaignNumber: string | null; status: string; taskCount: number; completionPercent: number }[];
+  upcomingDeadlines: {
+    today: { id: string; title: string; dueDate: string; department: string; assignedTo: string }[];
+    tomorrow: { id: string; title: string; dueDate: string; department: string; assignedTo: string }[];
+  };
+}
+
+export interface RecentActivityItem {
+  id: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  actorName: string;
+  details: string | null;
+  createdAt: string;
 }
 
 export interface CampaignDashboard {

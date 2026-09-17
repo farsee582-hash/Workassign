@@ -547,3 +547,76 @@ unread-message divider with scroll-to-unread on open, multi-file attach in
 a single message, in-chat search, per-campaign chat muting, message
 forwarding between campaigns, link previews for pasted URLs, and a chat
 export/transcript download (PDF or plain text).
+
+## Management Overview dashboard restructure (visual/richer widgets)
+
+The "Management Overview" section of the main Dashboard was restructured
+into a richer, more visual set of widgets, reusing the existing card/gauge/
+chart components and the amber/charcoal/cream color system as-is (no new
+palette, no photo cards, no dark panels).
+
+**Implemented:**
+- **6-card KPI row** — Active Campaigns, Total Tasks (+ "N pending"),
+  Completed (+ completion %), In Progress (+ "N not started"), Overdue
+  (+ subtle "⚠ Attention" when non-zero), Due Today. Reuses the existing
+  `.kpi-card`/`.icon-chip` styles.
+- **Overall Work Progress** — now the largest widget in the grid (spans
+  both columns via a new `.card-wide` class), showing the completion % as
+  a big number next to the existing `DonutChart` broken out into
+  Completed/In Progress/Pending/Overdue.
+- **Campaign Progress** — a card listing campaigns (Campaign Number + Name
+  + horizontal `.progress-bar` + %), in-progress campaigns first then by
+  completion %, capped at 6, with a "View All →" link to `/campaigns`.
+  Each row links to `/campaigns/:id`. Reuses `mgmt.campaignProgress` from
+  `/dashboard/management` directly — no recomputation.
+- **Department Progress** — restyled as a clean name + bar + % list (new
+  `ProgressRow` component) instead of the generic `BarChart`, reusing
+  `mgmt.departmentCompletion`.
+- **Staff Workload** — unchanged `BarChart` of `mgmt.staffWithPendingWork`.
+  The Department/Staff toggle suggested in the spec was **skipped** — the
+  existing bar chart already satisfies the core ask and the toggle would
+  add meaningful state/UI complexity for limited benefit.
+- **Attention Required** (new) — a card with colored-dot severity rows for
+  Overdue, Due Today, Awaiting review/approval (`SUBMITTED`/`UNDER_REVIEW`),
+  and Revision Required counts, computed from the extended
+  `/dashboard/management` response. Deep-linking each row to a
+  filtered `/my-work` or `/daily-work` list was **skipped**: `TaskListPage`
+  currently filters via local component state, not URL query params, so
+  wiring a real filtered deep link would require new filter-URL plumbing
+  outside this task's scope.
+- **Upcoming Deadlines** (new) — a compact "Today" / "Tomorrow" grouped
+  list of tasks (title, department, assignee), computed server-side from
+  the same management-scoped task query and added to the endpoint
+  response as `upcomingDeadlines`.
+- **Recent Activity** (new) — the `AuditLog` model already existed and is
+  already written by task/campaign mutations elsewhere in the backend, so
+  a new `GET /dashboard/recent-activity` endpoint was added: returns the
+  last 10 audit log entries, scoped to all entries for management roles
+  and to the current user's own entries otherwise. Rendered as a simple
+  timestamped list card.
+- **Calendar widget on the dashboard** — deliberately **skipped**, per the
+  spec: a full dedicated Calendar page already exists at
+  `frontend/src/pages/Calendar.tsx` and an inline mini-calendar duplicate
+  wasn't worth the complexity for this pass.
+
+**Backend response-shape additions (all additive, nothing removed):**
+- `GET /dashboard/management` — `tasks` gained `inProgress`, `dueToday`,
+  `awaitingReview`, `revisionRequired`; a new top-level `upcomingDeadlines:
+  { today: [...], tomorrow: [...] }` field was added (each entry has
+  `id`, `title`, `dueDate`, `department`, `assignedTo`).
+- New endpoint `GET /dashboard/recent-activity` — returns the 10 most
+  recent audit log entries the caller may see (`id`, `entityType`,
+  `entityId`, `action`, `actorName`, `details`, `createdAt`).
+
+No Prisma schema changes were needed for any of this — `AuditLog` already
+existed, and every new field above is computed from data already queried
+by the existing `/dashboard/management` handler, so there is no migration
+risk.
+
+**Layout:** the widgets follow the existing `.charts-grid` 2-column
+(collapsing to 1 on mobile) pattern; only "Overall Work Progress" is given
+extra visual weight via `.card-wide` (spans both columns above ~780px).
+The department/role filter row was left where it already was (directly
+below the header) rather than moved, since it was already reasonably close
+to the header controls and moving it risked more layout churn than the
+spec's "small clean change" bar allowed.

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import type { Department, ManagementDashboard, MyDashboard, Task } from '../types';
+import type { Department, ManagementDashboard, MyDashboard, RecentActivityItem, Task } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { BarChart, DonutChart, GaugeChart } from '../components/Charts';
 import { Link } from 'react-router-dom';
@@ -74,6 +74,43 @@ function TaskRow({ task }: { task: Task }) {
   );
 }
 
+function ProgressRow({ num, name, percent, href }: { num?: string | null; name: string; percent: number; href?: string }) {
+  const label = href ? (
+    <Link to={href} className="progress-row-name">{name}</Link>
+  ) : (
+    <span className="progress-row-name">{name}</span>
+  );
+  return (
+    <div className="progress-row">
+      <div className="progress-row-top">
+        <span style={{ display: 'flex', minWidth: 0 }}>
+          {num && <span className="progress-row-num">{num}</span>}
+          {label}
+        </span>
+        <span className="progress-row-pct">{percent}%</span>
+      </div>
+      <div className="progress-bar"><div style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} /></div>
+    </div>
+  );
+}
+
+function timeAgo(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
+
+function describeActivity(item: RecentActivityItem) {
+  const entity = item.entityType === 'Task' ? 'task' : item.entityType === 'Campaign' ? 'campaign' : item.entityType.toLowerCase();
+  const action = item.action.toLowerCase().replace(/_/g, ' ');
+  return `${item.actorName} ${action} a ${entity}`;
+}
+
 function greetingForHour(hour: number) {
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
@@ -91,6 +128,7 @@ export default function Dashboard() {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
+  const [activity, setActivity] = useState<RecentActivityItem[] | null>(null);
 
   const firstName = (user?.name ?? '').split(' ')[0] || 'there';
   const greeting = greetingForHour(new Date().getHours());
@@ -119,6 +157,11 @@ export default function Dashboard() {
     }
     api.get('/dashboard/management', { params }).then((r) => setMgmt(r.data));
   }, [user, range, departmentId, role, customFrom, customTo]);
+
+  useEffect(() => {
+    if (!user || !managementRoles.includes(user.role)) return;
+    api.get('/dashboard/recent-activity').then((r) => setActivity(r.data)).catch(() => setActivity([]));
+  }, [user]);
 
   const isManager = user && managementRoles.includes(user.role);
 
@@ -248,63 +291,187 @@ export default function Dashboard() {
             </select>
           </div>
 
-          {mgmt && (
-            <>
-              <div className="kpi-grid">
-                <Kpi value={mgmt.campaigns.total} label="Total campaigns" icon="megaphone" tint={kpiTints[0]} />
-                <Kpi value={mgmt.campaigns.active} label="Active campaigns" icon="flag" tint={kpiTints[0]} />
-                <Kpi value={mgmt.campaigns.completed} label="Completed campaigns" icon="check" tint={kpiTints[0]} />
-                <Kpi value={mgmt.tasks.total} label="Total tasks" icon="list" tint={kpiTints[0]} />
-                <Kpi value={mgmt.tasks.pending} label="Pending tasks" icon="clock" tint={kpiTints[0]} />
-                <Kpi value={mgmt.tasks.overdue} label="Overdue tasks" icon="alert" tint={kpiTints[0]} />
-              </div>
+          {mgmt && (() => {
+            const completionPercent = mgmt.tasks.total > 0 ? Math.round((mgmt.tasks.completed / mgmt.tasks.total) * 100) : 0;
+            const inProgressCount = mgmt.tasks.inProgress;
+            const pendingOnly = Math.max(0, mgmt.tasks.pending - inProgressCount - mgmt.tasks.overdue);
+            const topCampaigns = [...mgmt.campaignProgress]
+              .sort((a, b) => (a.status === 'IN_PROGRESS' ? -1 : 1) - (b.status === 'IN_PROGRESS' ? -1 : 1) || b.completionPercent - a.completionPercent)
+              .slice(0, 6);
+            return (
+              <>
+                <div className="kpi-grid">
+                  <Kpi value={mgmt.campaigns.active} label="Active Campaigns" icon="megaphone" tint={kpiTints[0]} />
+                  <div className="kpi-card">
+                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="list" /></div>
+                    <div className="value">{mgmt.tasks.total}</div>
+                    <div className="label">Total Tasks</div>
+                    <div className="sub">{mgmt.tasks.pending} pending</div>
+                  </div>
+                  <div className="kpi-card">
+                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="check" /></div>
+                    <div className="value">{mgmt.tasks.completed}</div>
+                    <div className="label">Completed</div>
+                    <div className="sub">{completionPercent}%</div>
+                  </div>
+                  <div className="kpi-card">
+                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="progress" /></div>
+                    <div className="value">{inProgressCount}</div>
+                    <div className="label">In Progress</div>
+                    <div className="sub">{pendingOnly} not started</div>
+                  </div>
+                  <div className="kpi-card">
+                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="alert" /></div>
+                    <div className="value">{mgmt.tasks.overdue}</div>
+                    <div className="label">Overdue</div>
+                    {mgmt.tasks.overdue > 0 && <div className="sub warn">⚠ Attention</div>}
+                  </div>
+                  <div className="kpi-card">
+                    <div className="icon-chip" style={{ background: kpiTints[0] }}><KpiIcon kind="calendar" /></div>
+                    <div className="value">{mgmt.tasks.dueToday}</div>
+                    <div className="label">Due Today</div>
+                  </div>
+                </div>
 
-              <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(260px, 1fr)', gap: 16, marginTop: 8 }}>
-                <div className="card">
-                  <strong>Task Status Breakdown</strong>
-                  <div style={{ marginTop: 10 }}>
-                    <DonutChart
-                      data={[
-                        { label: 'Completed', value: mgmt.tasks.completed, color: '#241f18' },
-                        { label: 'Pending', value: mgmt.tasks.pending - mgmt.tasks.overdue, color: '#a89a7c' },
-                        { label: 'Overdue', value: mgmt.tasks.overdue, color: '#c0432b' },
-                      ]}
-                    />
+                <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(260px, 1fr)', gap: 16, marginTop: 8 }}>
+                  <div className="card card-wide">
+                    <strong>Overall Work Progress</strong>
+                    <div className="hero-progress" style={{ marginTop: 14 }}>
+                      <div>
+                        <div className="hero-progress-number">{completionPercent}%</div>
+                        <div style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: 'var(--fs-sm)' }}>Overall completion</div>
+                      </div>
+                      <DonutChart
+                        data={[
+                          { label: 'Completed', value: mgmt.tasks.completed, color: '#241f18' },
+                          { label: 'In Progress', value: inProgressCount, color: '#e8b923' },
+                          { label: 'Pending', value: pendingOnly, color: '#a89a7c' },
+                          { label: 'Overdue', value: mgmt.tasks.overdue, color: '#c0432b' },
+                        ]}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="card">
-                  <strong>Department-wise Completion</strong>
-                  <div style={{ marginTop: 10 }}>
-                    <BarChart data={mgmt.departmentCompletion.map((d) => ({ label: d.name, value: d.completionPercent }))} />
-                  </div>
-                </div>
-                <div className="card">
-                  <strong>Campaign Progress</strong>
-                  <div style={{ marginTop: 10 }}>
-                    <BarChart data={mgmt.campaignProgress.map((c) => ({ label: c.name, value: c.completionPercent }))} />
-                  </div>
-                </div>
-                <div className="card">
-                  <strong>Staff Workload (pending tasks)</strong>
-                  <div style={{ marginTop: 10 }}>
-                    <BarChart data={mgmt.staffWithPendingWork.slice(0, 8).map((s) => ({ label: s.name, value: s.count }))} />
-                  </div>
-                </div>
-              </div>
 
-              <h3 style={{ marginTop: 20 }}>Staff With Pending Work</h3>
-              <div className="table-scroll">
-              <table>
-                <thead><tr><th>Name</th><th>Pending tasks</th></tr></thead>
-                <tbody>
-                  {mgmt.staffWithPendingWork.map((s) => (
-                    <tr key={s.id}><td>{s.name}</td><td>{s.count}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            </>
-          )}
+                  <div className="card">
+                    <strong>Department Progress</strong>
+                    <div style={{ marginTop: 12 }}>
+                      {mgmt.departmentCompletion.length === 0 && <div className="empty-note">No department data yet.</div>}
+                      {mgmt.departmentCompletion.map((d) => (
+                        <ProgressRow key={d.id} name={d.name} percent={d.completionPercent} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="card-header-row">
+                      <strong>Campaign Progress</strong>
+                      <Link to="/campaigns" className="card-link">View All →</Link>
+                    </div>
+                    <div style={{ marginTop: 4 }}>
+                      {topCampaigns.length === 0 && <div className="empty-note">No campaigns yet.</div>}
+                      {topCampaigns.map((c) => (
+                        <ProgressRow
+                          key={c.id}
+                          num={c.campaignNumber}
+                          name={c.name}
+                          percent={c.completionPercent}
+                          href={`/campaigns/${c.id}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <strong>Attention Required</strong>
+                    <div style={{ marginTop: 8 }}>
+                      <div className="attn-row">
+                        <span className={`attn-dot ${mgmt.tasks.overdue > 0 ? 'danger' : ''}`} />
+                        <span className="attn-row-text">Overdue tasks</span>
+                        <span className="attn-row-count">{mgmt.tasks.overdue}</span>
+                      </div>
+                      <div className="attn-row">
+                        <span className={`attn-dot ${mgmt.tasks.dueToday > 0 ? 'warn' : ''}`} />
+                        <span className="attn-row-text">Due today</span>
+                        <span className="attn-row-count">{mgmt.tasks.dueToday}</span>
+                      </div>
+                      <div className="attn-row">
+                        <span className={`attn-dot ${mgmt.tasks.awaitingReview > 0 ? 'accent' : ''}`} />
+                        <span className="attn-row-text">Awaiting review / approval</span>
+                        <span className="attn-row-count">{mgmt.tasks.awaitingReview}</span>
+                      </div>
+                      <div className="attn-row">
+                        <span className={`attn-dot ${mgmt.tasks.revisionRequired > 0 ? 'warn' : ''}`} />
+                        <span className="attn-row-text">Revision required</span>
+                        <span className="attn-row-count">{mgmt.tasks.revisionRequired}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <strong>Staff Workload (pending tasks)</strong>
+                    <div style={{ marginTop: 10 }}>
+                      <BarChart data={mgmt.staffWithPendingWork.slice(0, 8).map((s) => ({ label: s.name, value: s.count }))} />
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <strong>Upcoming Deadlines</strong>
+                    <div style={{ marginTop: 4 }}>
+                      <div className="deadline-group-label">Today</div>
+                      {mgmt.upcomingDeadlines.today.length === 0 && <div className="empty-note">Nothing due today.</div>}
+                      {mgmt.upcomingDeadlines.today.map((t) => (
+                        <div className="deadline-row" key={t.id}>
+                          <span className="attn-dot warn" />
+                          <div className="attn-row-text">
+                            <div className="deadline-row-title"><Link to={`/tasks/${t.id}`}>{t.title}</Link></div>
+                            <div className="deadline-row-meta">{t.department} · {t.assignedTo}</div>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="deadline-group-label">Tomorrow</div>
+                      {mgmt.upcomingDeadlines.tomorrow.length === 0 && <div className="empty-note">Nothing due tomorrow.</div>}
+                      {mgmt.upcomingDeadlines.tomorrow.map((t) => (
+                        <div className="deadline-row" key={t.id}>
+                          <span className="attn-dot" />
+                          <div className="attn-row-text">
+                            <div className="deadline-row-title"><Link to={`/tasks/${t.id}`}>{t.title}</Link></div>
+                            <div className="deadline-row-meta">{t.department} · {t.assignedTo}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {activity && activity.length > 0 && (
+                    <div className="card">
+                      <strong>Recent Activity</strong>
+                      <div style={{ marginTop: 8 }}>
+                        {activity.map((a) => (
+                          <div className="activity-row" key={a.id}>
+                            <span className="attn-dot accent" />
+                            <span className="activity-row-text">{describeActivity(a)}</span>
+                            <span className="activity-row-time">{timeAgo(a.createdAt)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <h3 style={{ marginTop: 20 }}>Staff With Pending Work</h3>
+                <div className="table-scroll">
+                <table>
+                  <thead><tr><th>Name</th><th>Pending tasks</th></tr></thead>
+                  <tbody>
+                    {mgmt.staffWithPendingWork.map((s) => (
+                      <tr key={s.id}><td>{s.name}</td><td>{s.count}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              </>
+            );
+          })()}
         </>
       )}
     </div>

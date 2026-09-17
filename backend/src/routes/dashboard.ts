@@ -90,6 +90,11 @@ router.get('/management', requireRoles('ADMIN', 'GMA', 'AGM', 'MANAGER', 'COORDI
   const isOverdue = (t: (typeof tasks)[number]) =>
     t.dueDate < new Date() && !['COMPLETED', 'CANCELLED'].includes(t.status);
 
+  const reviewStatuses = ['SUBMITTED', 'UNDER_REVIEW'];
+  const dueTodayStart = startOfDay();
+  const dueTodayEnd = startOfDay(1);
+  const dueTomorrowEnd = startOfDay(2);
+
   const staffPending = new Map<string, { id: string; name: string; count: number }>();
   tasks
     .filter((t) => !['COMPLETED', 'CANCELLED'].includes(t.status))
@@ -126,6 +131,10 @@ router.get('/management', requireRoles('ADMIN', 'GMA', 'AGM', 'MANAGER', 'COORDI
       pending: tasks.filter((t) => !['COMPLETED', 'CANCELLED'].includes(t.status)).length,
       completed: tasks.filter((t) => t.status === 'COMPLETED').length,
       overdue: tasks.filter(isOverdue).length,
+      inProgress: tasks.filter((t) => t.status === 'IN_PROGRESS').length,
+      dueToday: tasks.filter((t) => t.dueDate >= dueTodayStart && t.dueDate < dueTodayEnd && !['COMPLETED', 'CANCELLED'].includes(t.status)).length,
+      awaitingReview: tasks.filter((t) => reviewStatuses.includes(t.status)).length,
+      revisionRequired: tasks.filter((t) => t.status === 'REVISION_REQUIRED').length,
     },
     staffWithPendingWork: Array.from(staffPending.values()).sort((a, b) => b.count - a.count),
     departmentCompletion: Array.from(deptMap.values()).map((d) => ({
@@ -133,7 +142,43 @@ router.get('/management', requireRoles('ADMIN', 'GMA', 'AGM', 'MANAGER', 'COORDI
       completionPercent: d.total ? Math.round((d.completed / d.total) * 100) : 0,
     })),
     campaignProgress,
+    upcomingDeadlines: {
+      today: tasks
+        .filter((t) => t.dueDate >= dueTodayStart && t.dueDate < dueTodayEnd && !['COMPLETED', 'CANCELLED'].includes(t.status))
+        .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+        .map((t) => ({ id: t.id, title: t.title, dueDate: t.dueDate, department: t.department.name, assignedTo: t.assignedTo.name })),
+      tomorrow: tasks
+        .filter((t) => t.dueDate >= dueTodayEnd && t.dueDate < dueTomorrowEnd && !['COMPLETED', 'CANCELLED'].includes(t.status))
+        .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+        .map((t) => ({ id: t.id, title: t.title, dueDate: t.dueDate, department: t.department.name, assignedTo: t.assignedTo.name })),
+    },
   });
+});
+
+// Last ~10 audit log entries, newest first. Scoped: non-management users only
+// see entries they themselves authored (keeps this endpoint safe to expose
+// broadly without building out full per-entity access checks).
+router.get('/recent-activity', async (req, res) => {
+  const user = req.user!;
+  const managementRoleSet = ['ADMIN', 'GMA', 'AGM', 'MANAGER', 'COORDINATOR'];
+  const where = managementRoleSet.includes(user.role) ? {} : { actorId: user.id };
+  const logs = await prisma.auditLog.findMany({
+    where,
+    include: { actor: { select: { id: true, name: true } } },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  });
+  res.json(
+    logs.map((l) => ({
+      id: l.id,
+      entityType: l.entityType,
+      entityId: l.entityId,
+      action: l.action,
+      actorName: l.actor.name,
+      details: l.details,
+      createdAt: l.createdAt,
+    }))
+  );
 });
 
 export default router;
