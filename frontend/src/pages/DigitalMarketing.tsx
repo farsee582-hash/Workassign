@@ -138,6 +138,15 @@ export default function DigitalMarketing() {
     setTodos(todos.filter((t) => t.id !== id));
   }
 
+  async function toggleTaskComplete(t: Task) {
+    const nextStatus = t.status === 'COMPLETED' ? 'NOT_STARTED' : 'COMPLETED';
+    const r = await api.patch(`/tasks/${t.id}/status`, {
+      status: nextStatus,
+      completionPercent: nextStatus === 'COMPLETED' ? 100 : t.completionPercent,
+    });
+    setTasks(tasks.map((x) => (x.id === t.id ? r.data : x)));
+  }
+
   if (!dept || !sub) {
     return (
       <div>
@@ -247,6 +256,28 @@ export default function DigitalMarketing() {
               <button className="btn secondary small" onClick={() => shiftAnchor(1)} aria-label="Next">›</button>
             </div>
             <h3 className="calendar-month-label">{anchorLabel}</h3>
+            {view === 'month' && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <select
+                  value={anchor.getMonth()}
+                  onChange={(e) => setAnchor((d) => new Date(d.getFullYear(), Number(e.target.value), 1))}
+                  aria-label="Month"
+                >
+                  {Array.from({ length: 12 }, (_, m) => (
+                    <option key={m} value={m}>{new Date(2000, m, 1).toLocaleDateString(undefined, { month: 'long' })}</option>
+                  ))}
+                </select>
+                <select
+                  value={anchor.getFullYear()}
+                  onChange={(e) => setAnchor((d) => new Date(Number(e.target.value), d.getMonth(), 1))}
+                  aria-label="Year"
+                >
+                  {Array.from({ length: 6 }, (_, i) => anchor.getFullYear() - 2 + i).map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="tab-bar" style={{ marginBottom: 0 }}>
               {(['day', 'week', 'month', 'year'] as CalendarView[]).map((v) => (
                 <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{v[0].toUpperCase() + v.slice(1)}</button>
@@ -260,6 +291,7 @@ export default function DigitalMarketing() {
             tasks={filtered}
             onSelectTask={(t) => setSelectedTaskId(t.id)}
             onPickDay={(d) => { setAnchor(d); if (view === 'year') setView('month'); }}
+            onToggleComplete={toggleTaskComplete}
           />
 
           <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', marginTop: 24 }}>

@@ -42,12 +42,14 @@ export default function MonthCalendar({
   tasks,
   onSelectTask,
   onPickDay,
+  onToggleComplete,
 }: {
   view: CalendarView;
   anchor: Date;
   tasks: Task[];
   onSelectTask: (t: Task) => void;
   onPickDay?: (d: Date) => void;
+  onToggleComplete?: (t: Task) => void;
 }) {
   const tasksByDay = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -86,19 +88,47 @@ export default function MonthCalendar({
           const inMonth = d.getMonth() === anchor.getMonth();
           const isToday = sameDay(d, today);
           const dayTasks = tasksByDay.get(d.toDateString()) ?? [];
+          const doneCount = dayTasks.filter((t) => t.status === 'COMPLETED').length;
+          const pct = dayTasks.length ? Math.round((doneCount / dayTasks.length) * 100) : 0;
           return (
-            <button
-              key={d.toISOString()}
-              type="button"
-              className={`month-grid-cell${inMonth ? '' : ' outside'}${isToday ? ' today' : ''}`}
-              onClick={() => onPickDay?.(d)}
-            >
-              <span className="month-grid-daynum">{d.getDate()}</span>
-              <span className="month-grid-pills">
-                {dayTasks.slice(0, 3).map((t) => <Chip key={t.id} t={t} />)}
-                {dayTasks.length > 3 && <span className="month-grid-pill more">+{dayTasks.length - 3} more</span>}
-              </span>
-            </button>
+            <div key={d.toISOString()} className={`month-grid-cell${inMonth ? '' : ' outside'}${isToday ? ' today' : ''}`}>
+              <button type="button" className="month-grid-cell-head" onClick={() => onPickDay?.(d)}>
+                <span className="month-grid-daycount">{dayTasks.length || ''}</span>
+                <span className="month-grid-daynum">{d.getDate()}</span>
+              </button>
+              {dayTasks.length > 0 && (
+                <div className="month-grid-progress"><div className="month-grid-progress-fill" style={{ width: `${pct}%` }} />{pct > 0 && <span className="month-grid-progress-pct">{pct}%</span>}</div>
+              )}
+              <div className="month-grid-checklist">
+                {dayTasks.slice(0, 4).map((t) => {
+                  const done = t.status === 'COMPLETED';
+                  return (
+                    <div key={t.id} className="month-grid-check-row">
+                      <button
+                        type="button"
+                        className={`month-grid-checkbox${done ? ' checked' : ''}`}
+                        aria-label={done ? 'Mark as not completed' : 'Mark as completed'}
+                        onClick={(e) => { e.stopPropagation(); onToggleComplete?.(t); }}
+                      >
+                        {done && '✓'}
+                      </button>
+                      <button
+                        type="button"
+                        className={`month-grid-check-label${done ? ' done' : ''}`}
+                        title={`${t.title}${t.campaign ? ` — ${t.campaign.code} ${t.campaign.name}` : ''}`}
+                        onClick={(e) => { e.stopPropagation(); onSelectTask(t); }}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: regionColor(t.region), flexShrink: 0, display: 'inline-block' }} />
+                        <span className="month-grid-check-text">{t.title}</span>
+                      </button>
+                    </div>
+                  );
+                })}
+                {dayTasks.length > 4 && (
+                  <button type="button" className="month-grid-pill more" onClick={() => onPickDay?.(d)}>+{dayTasks.length - 4} more</button>
+                )}
+              </div>
+            </div>
           );
         })}
       </div>
