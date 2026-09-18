@@ -321,6 +321,16 @@ input:focus, select:focus, textarea:focus {
 .sidebar-group-chevron { display: flex; transition: transform .15s ease; flex-shrink: 0; }
 .sidebar-group-chevron.open { transform: rotate(180deg); }
 .sidebar-group-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sidebar-dept-group { margin-bottom: 12px; }
+.sidebar-dept-group:last-child { margin-bottom: 0; }
+.sidebar-dept-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0 12px 4px;
+}
 .sidebar-group-item {
   display: flex;
   align-items: center;
@@ -334,6 +344,7 @@ input:focus, select:focus, textarea:focus {
   text-decoration: none;
   transition: background-color .12s ease, color .12s ease;
 }
+.sidebar-group-item-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-group-item:hover { background: var(--color-accent-100); color: var(--color-text); text-decoration: none; }
 .sidebar-group-item.active {
   background: var(--color-charcoal);

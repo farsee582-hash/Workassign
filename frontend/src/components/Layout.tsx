@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { api } from '../api/client';
+import type { Department } from '../types';
 
 type IconProps = { size?: number };
 
@@ -94,10 +96,6 @@ const navItems = [
   { to: '/admin', label: 'Org & Access', Icon: IconUsers },
 ];
 
-const departmentItems = [
-  { to: '/departments/digital-marketing', label: 'Digital Marketing', Icon: IconLayers },
-];
-
 function IconChevron({ size = 14 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -125,7 +123,12 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deptOpen, setDeptOpen] = useState(true);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const location = useLocation();
+
+  useEffect(() => {
+    api.get('/departments').then((r) => setDepartments(r.data)).catch(() => setDepartments([]));
+  }, []);
 
   // Close the mobile menu whenever navigation happens.
   useEffect(() => {
@@ -165,12 +168,33 @@ export default function Layout() {
           </button>
           {deptOpen && (
             <ul className="sidebar-group-list">
-              {departmentItems.map(({ to, label, Icon }) => (
-                <li key={to}>
-                  <NavLink to={to} className={({ isActive }) => `sidebar-group-item${isActive ? ' active' : ''}`}>
-                    <span className="nav-icon"><Icon size={16} /></span>
-                    <span>{label}</span>
-                  </NavLink>
+              {departments.length === 0 && (
+                <li style={{ fontSize: 12, color: 'var(--color-text-faint)', padding: '4px 12px' }}>No departments yet</li>
+              )}
+              {departments.map((d) => (
+                <li key={d.id} className="sidebar-dept-group">
+                  <div className="sidebar-dept-name">{d.name}</div>
+                  <ul className="sidebar-group-list">
+                    {d.subDepartments.length === 0 && (
+                      <li>
+                        <NavLink to={`/departments/${d.id}`} className={({ isActive }) => `sidebar-group-item${isActive ? ' active' : ''}`}>
+                          <span className="nav-icon"><IconLayers size={16} /></span>
+                          <span className="sidebar-group-item-label">All work</span>
+                        </NavLink>
+                      </li>
+                    )}
+                    {d.subDepartments.map((s) => (
+                      <li key={s.id}>
+                        <NavLink
+                          to={s.name === 'Digital Marketing' ? '/departments/digital-marketing' : `/departments/${s.id}`}
+                          className={({ isActive }) => `sidebar-group-item${isActive ? ' active' : ''}`}
+                        >
+                          <span className="nav-icon"><IconLayers size={16} /></span>
+                          <span className="sidebar-group-item-label">{s.name}</span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               ))}
             </ul>
