@@ -123,7 +123,17 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deptOpen, setDeptOpen] = useState(true);
+  const [openDeptIds, setOpenDeptIds] = useState<Set<string>>(new Set());
   const [departments, setDepartments] = useState<Department[]>([]);
+
+  function toggleDept(id: string) {
+    setOpenDeptIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
   const location = useLocation();
 
   useEffect(() => {
@@ -171,32 +181,45 @@ export default function Layout() {
               {departments.length === 0 && (
                 <li style={{ fontSize: 12, color: 'var(--color-text-faint)', padding: '4px 12px' }}>No departments yet</li>
               )}
-              {departments.map((d) => (
-                <li key={d.id} className="sidebar-dept-group">
-                  <div className="sidebar-dept-name">{d.name}</div>
-                  <ul className="sidebar-group-list">
-                    {d.subDepartments.length === 0 && (
-                      <li>
-                        <NavLink to={`/departments/${d.id}`} className={({ isActive }) => `sidebar-group-item${isActive ? ' active' : ''}`}>
-                          <span className="nav-icon"><IconLayers size={16} /></span>
-                          <span className="sidebar-group-item-label">All work</span>
-                        </NavLink>
-                      </li>
+              {departments.map((d) => {
+                const isOpen = openDeptIds.has(d.id);
+                const hasSubs = d.subDepartments.length > 0;
+                return (
+                  <li key={d.id} className="sidebar-dept-group">
+                    {hasSubs ? (
+                      <button
+                        type="button"
+                        className="sidebar-dept-toggle"
+                        onClick={() => toggleDept(d.id)}
+                        aria-expanded={isOpen}
+                      >
+                        <span className="nav-icon"><IconLayers size={16} /></span>
+                        <span className="sidebar-group-item-label">{d.name}</span>
+                        <span className={`sidebar-group-chevron${isOpen ? ' open' : ''}`}><IconChevron size={12} /></span>
+                      </button>
+                    ) : (
+                      <NavLink to={`/departments/${d.id}`} className={({ isActive }) => `sidebar-group-item${isActive ? ' active' : ''}`}>
+                        <span className="nav-icon"><IconLayers size={16} /></span>
+                        <span className="sidebar-group-item-label">{d.name}</span>
+                      </NavLink>
                     )}
-                    {d.subDepartments.map((s) => (
-                      <li key={s.id}>
-                        <NavLink
-                          to={s.name === 'Digital Marketing' ? '/departments/digital-marketing' : `/departments/${s.id}`}
-                          className={({ isActive }) => `sidebar-group-item${isActive ? ' active' : ''}`}
-                        >
-                          <span className="nav-icon"><IconLayers size={16} /></span>
-                          <span className="sidebar-group-item-label">{s.name}</span>
-                        </NavLink>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
+                    {hasSubs && isOpen && (
+                      <ul className="sidebar-group-list sidebar-subdept-list">
+                        {d.subDepartments.map((s) => (
+                          <li key={s.id}>
+                            <NavLink
+                              to={s.name === 'Digital Marketing' ? '/departments/digital-marketing' : `/departments/${s.id}`}
+                              className={({ isActive }) => `sidebar-group-item${isActive ? ' active' : ''}`}
+                            >
+                              <span className="sidebar-group-item-label">{s.name}</span>
+                            </NavLink>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
