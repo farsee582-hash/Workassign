@@ -54,4 +54,33 @@ router.delete('/sub-departments/:id', requireRoles('ADMIN', 'GMA'), async (req, 
   res.status(204).send();
 });
 
+const DEFAULT_DEPARTMENTS: { name: string; subs: string[] }[] = [
+  { name: 'Marketing', subs: ['Digital Marketing', 'Campaigns', 'Showroom Marketing', 'Care'] },
+  { name: 'Purchase', subs: ['Sale', 'Stock'] },
+  { name: 'Audit', subs: [] },
+  { name: 'Finance', subs: ['Bills'] },
+];
+
+router.post('/bootstrap-defaults', requireRoles('ADMIN', 'GMA'), async (_req, res) => {
+  const result: { department: string; created: boolean; subs: { name: string; created: boolean }[] }[] = [];
+  for (const d of DEFAULT_DEPARTMENTS) {
+    const existing = await prisma.department.findUnique({ where: { name: d.name } });
+    const dept = existing ?? (await prisma.department.create({ data: { name: d.name } }));
+    const subs: { name: string; created: boolean }[] = [];
+    for (const subName of d.subs) {
+      const existingSub = await prisma.subDepartment.findUnique({
+        where: { departmentId_name: { departmentId: dept.id, name: subName } },
+      });
+      if (existingSub) {
+        subs.push({ name: subName, created: false });
+      } else {
+        await prisma.subDepartment.create({ data: { name: subName, departmentId: dept.id } });
+        subs.push({ name: subName, created: true });
+      }
+    }
+    result.push({ department: d.name, created: !existing, subs });
+  }
+  res.json({ result });
+});
+
 export default router;

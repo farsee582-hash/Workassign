@@ -216,6 +216,7 @@ function StaffTab({ departments, canEdit }: { departments: Department[]; canEdit
 function DepartmentsTab({ departments, reload, canEdit }: { departments: Department[]; reload: () => void; canEdit: boolean }) {
   const [name, setName] = useState('');
   const [subName, setSubName] = useState<Record<string, string>>({});
+  const [bootstrapping, setBootstrapping] = useState(false);
 
   async function createDepartment(e: FormEvent) {
     e.preventDefault();
@@ -223,6 +224,16 @@ function DepartmentsTab({ departments, reload, canEdit }: { departments: Departm
     await api.post('/departments', { name });
     setName('');
     reload();
+  }
+
+  async function bootstrapDefaults() {
+    setBootstrapping(true);
+    try {
+      await api.post('/departments/bootstrap-defaults');
+      reload();
+    } finally {
+      setBootstrapping(false);
+    }
   }
 
   async function createSub(e: FormEvent, deptId: string) {
@@ -241,6 +252,9 @@ function DepartmentsTab({ departments, reload, canEdit }: { departments: Departm
       <form className="card" onSubmit={createDepartment} style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
         <input placeholder="New department name" value={name} onChange={(e) => setName(e.target.value)} />
         <button className="btn small">Add Department</button>
+        <button type="button" className="btn small secondary" onClick={bootstrapDefaults} disabled={bootstrapping}>
+          {bootstrapping ? 'Adding…' : 'Add default departments (Marketing, Purchase, Audit, Finance)'}
+        </button>
       </form>
       )}
       {departments.map((d) => (
