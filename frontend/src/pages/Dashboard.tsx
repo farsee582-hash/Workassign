@@ -189,55 +189,53 @@ export default function Dashboard() {
           <div className="dash-breadcrumb">Home / Dashboard</div>
           <h1 className="dash-greeting">{greeting}, {firstName}</h1>
           <div className="dash-subtitle">It&rsquo;s {todayLabel}</div>
-          {my && (
-            <div className="dash-stat-row">
-              <StatInline value={my.counts.total} label="Total tasks" icon="list" />
-              <StatInline value={my.counts.pending} label="Pending" icon="clock" />
-              <StatInline value={my.counts.inProgress} label="In progress" icon="progress" />
-              <StatInline value={my.counts.dueToday} label="Due today" icon="calendar" />
-              <StatInline value={my.counts.overdue} label="Overdue" icon="alert" />
-              <StatInline value={my.counts.completed} label="Completed" icon="check" />
+        </div>
+        {my && (
+          <div className="dash-stat-row">
+            <StatInline value={my.counts.total} label="Total tasks" icon="list" />
+            <StatInline value={my.counts.pending} label="Pending" icon="clock" />
+            <StatInline value={my.counts.inProgress} label="In progress" icon="progress" />
+            <StatInline value={my.counts.dueToday} label="Due today" icon="calendar" />
+            <StatInline value={my.counts.overdue} label="Overdue" icon="alert" />
+            <StatInline value={my.counts.completed} label="Completed" icon="check" />
+          </div>
+        )}
+        <div className="dash-header-controls">
+          {isManager && (
+            <div className="glass dash-range-wrap">
+              <span className="icon" aria-hidden="true">📅</span>
+              <select className="dash-range-select" value={range} onChange={(e) => setRange(e.target.value)} aria-label="Date range">
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="custom">Custom</option>
+              </select>
             </div>
           )}
-        </div>
-        <div className="dash-header-right">
-          <div className="dash-header-controls">
-            {isManager && (
-              <div className="glass dash-range-wrap">
-                <span className="icon" aria-hidden="true">📅</span>
-                <select className="dash-range-select" value={range} onChange={(e) => setRange(e.target.value)} aria-label="Date range">
-                  <option value="all">All time</option>
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="custom">Custom</option>
-                </select>
+          <div className="dash-notif-wrap">
+            <button
+              type="button"
+              className="glass dash-notif-btn"
+              aria-label="Notifications"
+              onClick={() => setNotifOpen((v) => !v)}
+            >
+              <span aria-hidden="true">🔔</span>
+              {notifications.length > 0 && <span className="dash-notif-badge">{notifications.length}</span>}
+            </button>
+            {notifOpen && (
+              <div className="glass dash-notif-panel">
+                <div className="dash-notif-panel-title">Notifications</div>
+                {notifications.length === 0 && <div className="dash-notif-empty">You&rsquo;re all caught up.</div>}
+                {notifications.slice(0, 8).map((n) => (
+                  <div key={n.id} className={`dash-notif-item ${n.kind}`}>{n.text}</div>
+                ))}
               </div>
             )}
-            <div className="dash-notif-wrap">
-              <button
-                type="button"
-                className="glass dash-notif-btn"
-                aria-label="Notifications"
-                onClick={() => setNotifOpen((v) => !v)}
-              >
-                <span aria-hidden="true">🔔</span>
-                {notifications.length > 0 && <span className="dash-notif-badge">{notifications.length}</span>}
-              </button>
-              {notifOpen && (
-                <div className="glass dash-notif-panel">
-                  <div className="dash-notif-panel-title">Notifications</div>
-                  {notifications.length === 0 && <div className="dash-notif-empty">You&rsquo;re all caught up.</div>}
-                  {notifications.slice(0, 8).map((n) => (
-                    <div key={n.id} className={`dash-notif-item ${n.kind}`}>{n.text}</div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
-          <div className="dash-gauge-card">
-            <GaugeChart percent={overallPercent} size={200} label="Overall completion" />
-          </div>
+        </div>
+        <div className="dash-gauge-card">
+          <GaugeChart percent={overallPercent} size={200} label="Overall completion" />
         </div>
       </div>
 
