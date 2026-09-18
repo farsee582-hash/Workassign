@@ -91,9 +91,20 @@ const navItems = [
   { to: '/campaigns', label: 'Campaigns', Icon: IconMegaphone },
   { to: '/daily-work', label: 'Daily Work', Icon: IconSettings },
   { to: '/recurring-work', label: 'Recurring', Icon: IconRepeat },
-  { to: '/departments/digital-marketing', label: 'Digital Marketing', Icon: IconLayers },
   { to: '/admin', label: 'Org & Access', Icon: IconUsers },
 ];
+
+const departmentItems = [
+  { to: '/departments/digital-marketing', label: 'Digital Marketing', Icon: IconLayers },
+];
+
+function IconChevron({ size = 14 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
 
 function initials(name?: string) {
   if (!name) return '?';
@@ -113,6 +124,7 @@ function Logomark() {
 export default function Layout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [deptOpen, setDeptOpen] = useState(true);
   const location = useLocation();
 
   // Close the mobile menu whenever navigation happens.
@@ -146,6 +158,24 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+        <div className="sidebar-group">
+          <button className="sidebar-group-toggle" onClick={() => setDeptOpen((v) => !v)} aria-expanded={deptOpen}>
+            <span className={`sidebar-group-chevron${deptOpen ? ' open' : ''}`}><IconChevron /></span>
+            <span>Departments</span>
+          </button>
+          {deptOpen && (
+            <ul className="sidebar-group-list">
+              {departmentItems.map(({ to, label, Icon }) => (
+                <li key={to}>
+                  <NavLink to={to} className={({ isActive }) => `sidebar-group-item${isActive ? ' active' : ''}`}>
+                    <span className="nav-icon"><Icon size={16} /></span>
+                    <span>{label}</span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <div className="favorites">
           <h6>QUICK LINKS</h6>
           <ul>
