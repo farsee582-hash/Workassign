@@ -114,8 +114,8 @@ export function GaugeChart({
   const ticks = showTicks ? [0, 0.2, 0.4, 0.6, 0.8, 1] : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-      <svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', width: '100%', maxWidth: svgSize }}>
+      <svg width="100%" height="auto" viewBox={`0 0 ${svgSize} ${svgSize}`} style={{ display: 'block', maxWidth: '100%' }}>
         <path
           d={`M ${trackStart.x} ${trackStart.y} A ${radius} ${radius} 0 ${largeArc(endDeg)} 1 ${trackEnd.x} ${trackEnd.y}`}
           fill="none"

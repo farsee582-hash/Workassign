@@ -330,6 +330,11 @@ input:focus, select:focus, textarea:focus {
 
 .content { flex: 1; padding: var(--sp-6); max-width: 1280px; margin: 0 auto; width: 100%; box-sizing: border-box; overflow-y: auto; height: 100vh; }
 
+@media (max-width: 1024px) {
+  .content { padding: var(--sp-5); }
+  .sidebar { width: 210px; }
+}
+
 /* ---------- Avatar chips (initials) ---------- */
 .avatar-chip {
   width: 30px;
@@ -1144,6 +1149,12 @@ tbody tr:last-child td { border-bottom: none; }
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .dash-gauge-card { max-width: 170px; margin: 0 auto; }
+  .dash-main-grid { gap: var(--sp-3); }
 }
 
 @media (max-width: 768px) {
@@ -1159,10 +1170,21 @@ tbody tr:last-child td { border-bottom: none; }
     align-items: stretch;
     gap: var(--sp-3);
   }
-  .dash-gauge-card { align-self: center; }
+  .dash-gauge-card { align-self: center; max-width: 150px; }
   .dash-header-controls { justify-content: space-between; }
   .dash-greeting { font-size: var(--fs-xl); }
   .dash-notif-panel { right: auto; left: 0; }
+  .dash-stat-row { gap: var(--sp-3); margin-top: var(--sp-5); }
+  .dash-pill-row { gap: var(--sp-3); }
+  .progress-pill { min-width: 90px; }
+  .stat-card-outline { min-width: 0; flex: 1 1 100px; }
+}
+
+@media (max-width: 420px) {
+  .dash-stat { flex: 1 1 40%; }
+  .dash-stat-row { justify-content: space-between; }
+  .dash-gauge-card { max-width: 130px; }
+  .dash-greeting { font-size: var(--fs-lg); }
 }
 
 /* ---------- Stat chip (small linked stat) ---------- */
