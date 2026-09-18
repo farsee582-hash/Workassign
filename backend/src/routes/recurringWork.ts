@@ -8,6 +8,7 @@ router.use(authenticate);
 
 const include = {
   department: { select: { id: true, name: true } },
+  subDepartment: { select: { id: true, name: true } },
   assignedTo: { select: { id: true, name: true } },
   createdBy: { select: { id: true, name: true } },
 };
@@ -44,6 +45,9 @@ router.post('/', async (req, res) => {
       createdById: req.user!.id,
       startDate: b.startDate ? new Date(b.startDate) : new Date(),
       endDate: b.endDate ? new Date(b.endDate) : null,
+      subDepartmentId: b.subDepartmentId ?? null,
+      region: b.region ?? null,
+      dmWorkType: b.dmWorkType ?? null,
     },
     include,
   });
@@ -111,6 +115,7 @@ router.get('/generate', async (req, res) => {
           description: t.description,
           workType: 'DAILY',
           departmentId: t.departmentId,
+          subDepartmentId: t.subDepartmentId ?? null,
           assignedToId,
           createdById: t.createdById,
           startDate: today,
@@ -118,6 +123,8 @@ router.get('/generate', async (req, res) => {
           priority: t.priority,
           status: 'ASSIGNED',
           recurringTemplateId: t.id,
+          region: t.region ?? null,
+          dmWorkType: t.dmWorkType ?? null,
         },
       });
       created.push(task.id);

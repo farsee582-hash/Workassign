@@ -74,6 +74,16 @@ function IconUsers({ size = 18 }: IconProps) {
   );
 }
 
+function IconLayers({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2 2 7l10 5 10-5-10-5Z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  );
+}
+
 const navItems = [
   { to: '/', label: 'Dashboard', Icon: IconGrid },
   { to: '/my-work', label: 'My Work', Icon: IconCheck },
@@ -81,6 +91,7 @@ const navItems = [
   { to: '/campaigns', label: 'Campaigns', Icon: IconMegaphone },
   { to: '/daily-work', label: 'Daily Work', Icon: IconSettings },
   { to: '/recurring-work', label: 'Recurring', Icon: IconRepeat },
+  { to: '/departments/digital-marketing', label: 'Digital Marketing', Icon: IconLayers },
   { to: '/admin', label: 'Org & Access', Icon: IconUsers },
 ];
 

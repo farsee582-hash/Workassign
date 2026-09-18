@@ -48,13 +48,22 @@ const include = {
 
 router.get('/', async (req, res) => {
   const filter = scopeFilter(req.user!);
-  const { workType, campaignId, status } = req.query;
+  const { workType, campaignId, status, departmentId, subDepartmentId, region, dmWorkType, assignedToId, dateFrom, dateTo } = req.query;
+  const dueDate: Record<string, Date> = {};
+  if (dateFrom) dueDate.gte = new Date(dateFrom as string);
+  if (dateTo) dueDate.lte = new Date(dateTo as string);
   const tasks = await prisma.task.findMany({
     where: {
       ...filter,
       workType: workType ? (workType as string) : undefined,
       campaignId: campaignId ? (campaignId as string) : undefined,
       status: status ? (status as string) : undefined,
+      departmentId: departmentId ? (departmentId as string) : undefined,
+      subDepartmentId: subDepartmentId ? (subDepartmentId as string) : undefined,
+      region: region ? (region as string) : undefined,
+      dmWorkType: dmWorkType ? (dmWorkType as string) : undefined,
+      assignedToId: assignedToId ? (assignedToId as string) : undefined,
+      dueDate: Object.keys(dueDate).length ? dueDate : undefined,
     },
     include,
     orderBy: { dueDate: 'asc' },
@@ -113,6 +122,8 @@ router.post('/', async (req, res) => {
       dueDate: new Date(b.dueDate),
       priority: b.priority ?? 'MEDIUM',
       status: 'ASSIGNED',
+      region: b.region ?? null,
+      dmWorkType: b.dmWorkType ?? null,
     },
     include,
   });
@@ -128,7 +139,7 @@ router.post('/bulk', async (req, res) => {
     return res.status(403).json({ error: 'You are not permitted to assign work' });
   }
   const b = req.body;
-  const { title, description, workType, departmentId, subDepartmentId, campaignId, startDate, dueDate, priority, assignedToIds } = b;
+  const { title, description, workType, departmentId, subDepartmentId, campaignId, startDate, dueDate, priority, assignedToIds, region, dmWorkType } = b;
   if (!title || !workType || !departmentId || !startDate || !dueDate || !Array.isArray(assignedToIds) || assignedToIds.length === 0) {
     return res.status(400).json({ error: 'Missing required fields (title, workType, departmentId, startDate, dueDate, assignedToIds[])' });
   }
@@ -152,6 +163,8 @@ router.post('/bulk', async (req, res) => {
         dueDate: new Date(dueDate),
         priority: priority ?? 'MEDIUM',
         status: 'ASSIGNED',
+        region: region ?? null,
+        dmWorkType: dmWorkType ?? null,
       },
       include,
     });
@@ -173,6 +186,8 @@ router.put('/:id', async (req, res) => {
     startDate: b.startDate ? new Date(b.startDate) : undefined,
     dueDate: b.dueDate ? new Date(b.dueDate) : undefined,
     priority: b.priority,
+    region: b.region,
+    dmWorkType: b.dmWorkType,
   };
   Object.keys(data).forEach((k) => data[k] === undefined && delete data[k]);
   const task = await prisma.task.update({ where: { id: req.params.id }, data, include });

@@ -11,6 +11,7 @@ import CampaignDetail from './pages/CampaignDetail';
 import Calendar from './pages/Calendar';
 import Admin from './pages/Admin';
 import RecurringWork from './pages/RecurringWork';
+import DigitalMarketing from './pages/DigitalMarketing';
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/campaigns/:id" element={<CampaignDetail />} />
           <Route path="/departments" element={<Navigate to="/admin?tab=departments" replace />} />
+          <Route path="/departments/digital-marketing" element={<DigitalMarketing />} />
           <Route path="/staff" element={<Navigate to="/admin?tab=staff" replace />} />
           <Route path="/admin" element={<Admin />} />
         </Route>

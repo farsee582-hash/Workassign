@@ -620,3 +620,80 @@ The department/role filter row was left where it already was (directly
 below the header) rather than moved, since it was already reasonably close
 to the header controls and moving it risked more layout churn than the
 spec's "small clean change" bar allowed.
+
+## Department-wise Work Management — Marketing / Digital Marketing
+
+A new "Digital Marketing" nav tile (`/departments/digital-marketing`)
+opens a Work / Calendar / Chart page scoped to the existing seeded
+`Marketing` department + `Digital Marketing` sub-department (found by name
+on load, not hardcoded IDs anywhere in the frontend or backend — the
+department/sub-department is resolved once and threaded through as
+`departmentId`/`subDepartmentId`). Nothing about it is specific to
+"Digital Marketing" beyond that name lookup, so the same page/components
+can be reused for a future department by changing the lookup.
+
+**Schema (additive, nullable, safe for the live table):**
+- `Task.region String?` — `"KERALA" | "TAMIL_NADU" | "BOTH"` stored as a
+  plain string (not a hard enum) so more regions can be added later without
+  a migration.
+- `Task.dmWorkType String?` — free-form content-type label (Social Media
+  Post, Instagram Reel, Google Ads, …), populated from a fixed dropdown in
+  the frontend (`frontend/src/lib/digitalMarketing.ts`). Deliberately kept
+  separate from the existing `workType` enum (`CAMPAIGN`/`DAILY`), which is
+  a work-classification concept, not a content type.
+- `RecurringWorkTemplate.subDepartmentId/region/dmWorkType` — the existing
+  recurring-work generator (`GET /recurring-work/generate`, unchanged
+  logic) now carries these three fields through to each generated `Task`
+  occurrence, so Digital Marketing recurring templates show up on the
+  calendar correctly.
+- New models `DepartmentGoal` and `DepartmentTodo` — minimal
+  `{ id, departmentId, subDepartmentId?, text, order, createdAt }`
+  (+`done Boolean @default(false)` for todos) backing the "Top Goals" /
+  "To-Do List" widgets under the Calendar tab. Plain CRUD via a new
+  `backend/src/routes/departmentWork.ts` (`GET/POST /department-work/:departmentId/goals`,
+  `PATCH/DELETE /department-work/goals/:id`, same shape for `/todos`).
+
+**Reused rather than rebuilt:** the existing `Task`, `RecurringWorkTemplate`,
+`TaskComment`/`TaskAttachment` models and their existing endpoints
+(`GET/POST /tasks`, `/tasks/bulk`, `/tasks/:id/status`, `/comments`,
+`/attachments`) — no parallel task model was created. `GET /tasks` gained
+additive query filters (`departmentId`, `subDepartmentId`, `region`,
+`dmWorkType`, `assignedToId`, `dateFrom`/`dateTo`) used by the Digital
+Marketing page and available to any other page. The existing role
+visibility scoping in `tasks.ts` (`scopeFilter`) and `canAssignWork()` /
+`isManagement()` checks are used as-is — no new permission model.
+
+**Frontend pieces:**
+- `frontend/src/components/MonthCalendar.tsx` — new dependency-free,
+  reusable Day/Week/Month/Year calendar (Month is the full task-chip grid;
+  Day is a list; Week is a 7-column grid; Year is a 12-month count
+  summary — all real data, no placeholders).
+- `frontend/src/components/TaskDetailModal.tsx` — the task detail panel
+  (item 13) as a modal, calling the same `/tasks/:id` GET/PATCH/comments/
+  attachments endpoints as the existing full `TaskDetail` page (which
+  remains the canonical deep-linkable `/tasks/:id` route — the modal links
+  out to it rather than duplicating every action, e.g. reassignment stays
+  on the full page for now).
+- `frontend/src/pages/DigitalMarketing.tsx` — the Work/Calendar/Chart page,
+  filters (Region/Staff/Work Type/Status/Campaign) shared across all three
+  tabs via one piece of component state, summary cards computed client-side
+  from the currently filtered task list (no new aggregate endpoint was
+  needed for this), and the Top Goals/To-Do widgets.
+- `AssignWorkForm.tsx` and `RecurringWork.tsx` were extended (not
+  duplicated) with an optional sub-department picker and, when that
+  sub-department is "Digital Marketing", Region + Work Type dropdowns.
+
+**Status mapping:** the requested filter statuses (Not Started, In
+Progress, Submitted, Under Review, Revision Required, Completed, Overdue)
+map directly onto existing `Task.status` enum values of the same name,
+except **Overdue**, which isn't a stored status — it's derived the same
+way the rest of the app already derives it (`task.overdue`, computed
+server-side as "past due date and not COMPLETED/CANCELLED"), so the
+Overdue filter option filters on that flag instead of `status`.
+
+**Skipped / simplified for this pass:** Finance and Purchase departments
+(explicitly out of scope); a dedicated `work-summary` aggregate endpoint
+(the filtered task list already gives the frontend everything needed for
+the summary cards/charts without a second server round trip); reassignment
+and approve/reject actions inside the modal (available on the full task
+page it links to, to avoid duplicating that logic in two places).

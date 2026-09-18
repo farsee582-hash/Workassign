@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api } from '../api/client';
 import type { Department, User } from '../types';
+import { DM_WORK_TYPES, REGIONS } from '../lib/digitalMarketing';
 
 /**
  * Shared "Add Task" / "Add Work" flow (items 3 & 4): pick a department, pick
@@ -12,16 +13,21 @@ export default function AssignWorkForm({
   departments,
   workType,
   campaignId,
+  defaultDepartmentId,
+  defaultSubDepartmentId,
   onDone,
   onCancel,
 }: {
   departments: Department[];
   workType: 'CAMPAIGN' | 'DAILY';
   campaignId?: string;
+  defaultDepartmentId?: string;
+  defaultSubDepartmentId?: string;
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const [departmentId, setDepartmentId] = useState('');
+  const [departmentId, setDepartmentId] = useState(defaultDepartmentId ?? '');
+  const [subDepartmentId, setSubDepartmentId] = useState(defaultSubDepartmentId ?? '');
   const [staff, setStaff] = useState<User[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [title, setTitle] = useState('');
@@ -29,8 +35,14 @@ export default function AssignWorkForm({
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState('MEDIUM');
+  const [region, setRegion] = useState('');
+  const [dmWorkType, setDmWorkType] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const selectedDept = departments.find((d) => d.id === departmentId);
+  const selectedSub = selectedDept?.subDepartments.find((s) => s.id === subDepartmentId);
+  const isDigitalMarketing = selectedSub?.name === 'Digital Marketing';
 
   useEffect(() => {
     if (!departmentId) {
@@ -72,10 +84,13 @@ export default function AssignWorkForm({
         workType,
         campaignId: campaignId ?? undefined,
         departmentId,
+        subDepartmentId: subDepartmentId || undefined,
         startDate,
         dueDate,
         priority,
         assignedToIds: Array.from(selected),
+        region: region || undefined,
+        dmWorkType: dmWorkType || undefined,
       });
       onDone();
     } catch (err: any) {
@@ -97,6 +112,30 @@ export default function AssignWorkForm({
             {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </label>
+        {selectedDept && selectedDept.subDepartments.length > 0 && (
+          <label>Sub-department
+            <select value={subDepartmentId} onChange={(e) => setSubDepartmentId(e.target.value)}>
+              <option value="">None</option>
+              {selectedDept.subDepartments.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </label>
+        )}
+        {isDigitalMarketing && (
+          <>
+            <label>Region
+              <select value={region} onChange={(e) => setRegion(e.target.value)}>
+                <option value="">Not set</option>
+                {REGIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+            </label>
+            <label>Work Type
+              <select value={dmWorkType} onChange={(e) => setDmWorkType(e.target.value)}>
+                <option value="">Not set</option>
+                {DM_WORK_TYPES.map((w) => <option key={w} value={w}>{w}</option>)}
+              </select>
+            </label>
+          </>
+        )}
         <label>Start Date<input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></label>
         <label>Due Date<input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
         <label>Priority

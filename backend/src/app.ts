@@ -9,6 +9,7 @@ import campaignRoutes from './routes/campaigns';
 import taskRoutes from './routes/tasks';
 import dashboardRoutes from './routes/dashboard';
 import recurringWorkRoutes from './routes/recurringWork';
+import departmentWorkRoutes from './routes/departmentWork';
 
 const app = express();
 
@@ -41,5 +42,6 @@ app.use('/campaigns', campaignRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/recurring-work', recurringWorkRoutes);
+app.use('/department-work', departmentWorkRoutes);
 
 export default app;

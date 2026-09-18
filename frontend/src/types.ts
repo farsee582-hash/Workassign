@@ -98,6 +98,8 @@ export interface RecurringWorkTemplate {
   description: string | null;
   departmentId: string;
   department: { id: string; name: string };
+  subDepartmentId?: string | null;
+  subDepartment?: { id: string; name: string } | null;
   assignedToId: string | null;
   assignedTo: { id: string; name: string } | null;
   recurrenceType: 'DAILY' | 'WEEKLY' | 'MONTHLY';
@@ -108,6 +110,8 @@ export interface RecurringWorkTemplate {
   createdBy: { id: string; name: string };
   startDate: string;
   endDate: string | null;
+  region?: string | null;
+  dmWorkType?: string | null;
 }
 
 export interface Task {
@@ -135,9 +139,28 @@ export interface Task {
   completionPercent: number;
   approvalStatus: string;
   recurringTemplateId?: string | null;
+  region?: string | null;
+  dmWorkType?: string | null;
   overdue: boolean;
   comments?: TaskComment[];
   attachments?: TaskAttachment[];
+}
+
+export interface DepartmentGoal {
+  id: string;
+  departmentId: string;
+  subDepartmentId: string | null;
+  text: string;
+  order: number;
+}
+
+export interface DepartmentTodo {
+  id: string;
+  departmentId: string;
+  subDepartmentId: string | null;
+  text: string;
+  done: boolean;
+  order: number;
 }
 
 export interface TaskComment {

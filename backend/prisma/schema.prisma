@@ -32,7 +32,35 @@ model Department {
   tasks          Task[]
   campaignAccess CampaignAccess[]
   recurringTemplates RecurringWorkTemplate[]
+  goals          DepartmentGoal[]
+  todos          DepartmentTodo[]
   createdAt      DateTime        @default(now())
+}
+
+// Simple manually-edited "Top Goals" list shown above a department/sub-department
+// calendar (item 12). Intentionally minimal — no owners/due dates.
+model DepartmentGoal {
+  id              String     @id @default(cuid())
+  departmentId    String
+  department      Department @relation(fields: [departmentId], references: [id])
+  subDepartmentId String?
+  subDepartment   SubDepartment? @relation(fields: [subDepartmentId], references: [id])
+  text            String
+  order           Int        @default(0)
+  createdAt       DateTime   @default(now())
+}
+
+// Simple checklist widget shown alongside Top Goals (item 12).
+model DepartmentTodo {
+  id              String     @id @default(cuid())
+  departmentId    String
+  department      Department @relation(fields: [departmentId], references: [id])
+  subDepartmentId String?
+  subDepartment   SubDepartment? @relation(fields: [subDepartmentId], references: [id])
+  text            String
+  done            Boolean    @default(false)
+  order           Int        @default(0)
+  createdAt       DateTime   @default(now())
 }
 
 model SubDepartment {
@@ -42,6 +70,9 @@ model SubDepartment {
   name         String
   users        User[]
   tasks        Task[]
+  recurringTemplates RecurringWorkTemplate[]
+  goals        DepartmentGoal[]
+  todos        DepartmentTodo[]
   createdAt    DateTime   @default(now())
 
   @@unique([departmentId, name])
@@ -195,6 +226,13 @@ model RecurringWorkTemplate {
   endDate         DateTime?
   createdAt       DateTime  @default(now())
   occurrences     Task[]
+  // Department-wise Work Management: scope a recurring template to a
+  // sub-department (e.g. Digital Marketing) and carry region/dmWorkType
+  // through to each generated Task occurrence. Nullable/additive.
+  subDepartmentId String?
+  subDepartment   SubDepartment? @relation(fields: [subDepartmentId], references: [id])
+  region          String?
+  dmWorkType      String?
 }
 
 model Task {
@@ -221,6 +259,14 @@ model Task {
   status            String     @default("NOT_STARTED")
   completionPercent Int        @default(0)
   approvalStatus    String         @default("NOT_SUBMITTED")
+  // Department-wise Work Management (Marketing > Digital Marketing, item 3 & 5):
+  // region is a plain string (not a hard enum) so more values can be added
+  // later without a migration — "KERALA" | "TAMIL_NADU" | "BOTH" for now.
+  region            String?
+  // Free-form content-type label for department task boards (e.g. Digital
+  // Marketing's "Instagram Reel", "Google Ads" …) — distinct from `workType`
+  // (CAMPAIGN|DAILY), which is a work-classification concept, not content type.
+  dmWorkType        String?
   recurringTemplateId String?
   recurringTemplate RecurringWorkTemplate? @relation(fields: [recurringTemplateId], references: [id])
   comments          TaskComment[]
