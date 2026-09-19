@@ -136,9 +136,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- Glass-morphism utility ----------
-   Scoped, tasteful use only (e.g. the Dashboard header hero area) — not a
-   replacement for the solid-white card system used elsewhere. */
+/* ---------- Liquid glass ----------
+   Shared translucent frosted-glass recipe. Individual surface rules below
+   (.card, .sidebar, table, inputs, kanban columns, calendar cells, modals,
+   etc.) each apply these same background/blur/border values directly so
+   the whole app reads as one consistent "liquid glass" system over the
+   warm gradient background, instead of solid opaque panels. */
 .glass {
   background: rgba(255, 255, 255, 0.55);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
@@ -180,9 +183,11 @@ input, select, textarea {
   font: inherit;
   font-size: var(--fs-base);
   padding: 10px 14px;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
   color: var(--color-text);
 }
 input:focus, select:focus, textarea:focus {
@@ -235,7 +240,10 @@ input:focus, select:focus, textarea:focus {
   position: sticky;
   top: 0;
   overflow-y: auto;
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.6);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  border-right: 1px solid rgba(255, 255, 255, 0.5);
   color: var(--color-text);
   padding: var(--sp-5) var(--sp-3);
   flex-shrink: 0;
@@ -286,7 +294,9 @@ input:focus, select:focus, textarea:focus {
   font-size: 0.78rem;
   font-weight: 600;
   text-align: center;
-  background: var(--color-surface-alt);
+  background: rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  backdrop-filter: blur(8px) saturate(150%);
   min-height: 76px;
   text-decoration: none;
   transition: background-color .12s ease, color .12s ease;
@@ -338,7 +348,9 @@ input:focus, select:focus, textarea:focus {
   width: 100%;
   padding: 11px 12px;
   border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
+  background: rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  backdrop-filter: blur(8px) saturate(150%);
   border: none;
   color: var(--color-text-muted);
   font-size: var(--fs-sm);
@@ -356,7 +368,9 @@ input:focus, select:focus, textarea:focus {
   gap: 10px;
   padding: 11px 12px;
   border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
+  background: rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  backdrop-filter: blur(8px) saturate(150%);
   color: var(--color-text-muted);
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -422,8 +436,10 @@ input:focus, select:focus, textarea:focus {
 
 /* ---------- Cards ---------- */
 .card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--radius-lg);
   padding: var(--sp-5);
   box-shadow: var(--shadow-sm);
@@ -436,8 +452,10 @@ input:focus, select:focus, textarea:focus {
   margin: var(--sp-4) 0 var(--sp-6);
 }
 .kpi-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--radius-lg);
   padding: var(--sp-4);
   box-shadow: var(--shadow-sm);
@@ -525,8 +543,10 @@ input:focus, select:focus, textarea:focus {
   position: relative;
   height: 32px;
   border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -548,8 +568,10 @@ input:focus, select:focus, textarea:focus {
   gap: 6px;
   padding: var(--sp-3) var(--sp-4);
   border-radius: var(--radius-lg);
-  border: 1.5px solid var(--color-border-strong);
-  background: var(--color-surface);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
   min-width: 140px;
 }
 .stat-card-outline .label { font-size: var(--fs-xs); color: var(--color-text-muted); font-weight: 600; }
@@ -708,8 +730,10 @@ tbody tr:last-child td { border-bottom: none; }
 .tab-bar { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); flex-wrap: wrap; }
 .tab-bar button {
   padding: 9px 18px;
-  border: none;
-  background: var(--color-surface);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
   border-radius: var(--radius-pill);
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -751,8 +775,10 @@ tbody tr:last-child td { border-bottom: none; }
   align-items: stretch;
   gap: 4px;
   min-height: 118px;
-  background: var(--color-surface);
-  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
   padding: 6px;
@@ -760,7 +786,7 @@ tbody tr:last-child td { border-bottom: none; }
   font: inherit;
   overflow: hidden;
 }
-.month-grid-cell.outside { background: var(--color-surface-alt); color: var(--color-text-faint); box-shadow: none; }
+.month-grid-cell.outside { background: rgba(255, 255, 255, 0.2); color: var(--color-text-faint); box-shadow: none; }
 .month-grid-cell.today { box-shadow: 0 0 0 2px var(--color-accent-500) inset; background: var(--color-accent-tint); }
 .month-grid-cell.selected { box-shadow: 0 0 0 2px var(--color-charcoal) inset; }
 .month-grid-cell-head {
@@ -1052,7 +1078,10 @@ tbody tr:last-child td { border-bottom: none; }
   align-items: start;
 }
 .kanban-column {
-  background: var(--color-surface-alt);
+  background: rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: var(--radius-lg);
   padding: var(--sp-3);
   min-height: 120px;
@@ -1380,7 +1409,10 @@ tbody tr:last-child td { border-bottom: none; }
   margin-bottom: var(--sp-4);
 }
 .dw-summary-card {
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--radius-lg);
   padding: var(--sp-4);
   box-shadow: var(--shadow-sm);
